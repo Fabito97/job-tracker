@@ -1,0 +1,12 @@
+You are writing a cover letter for the candidate whose resume follows.
+
+CANDIDATE RESUME:
+{{CV}}
+
+JOB POSTING:
+{{JOB}}
+
+Write a cover letter of three or four short paragraphs addressed to the hiring team.
+Open with the role and why the candidate is a fit, use concrete achievements that already appear in the resume,
+and close with a brief call to action. Do not fabricate accomplishments, employers, or dates.
+Avoid the em dash. Return the letter as plain text with no heading, no placeholders, and no commentary.

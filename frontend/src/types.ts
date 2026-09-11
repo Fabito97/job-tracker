@@ -1,0 +1,132 @@
+export const JOB_STATUSES = ['Pending', 'Applied', 'Interviewing', 'Offer', 'Rejected'] as const
+
+export type JobStatus = (typeof JOB_STATUSES)[number]
+
+export interface JobListItem {
+  id: number
+  jobTitle: string
+  company: string
+  location: string
+  jobBoard: string
+  jobUrl: string
+  matchScore: number
+  resumeVersion: string
+  status: JobStatus
+  postedDate: string
+  appliedAt: string | null
+  interviewAt: string | null
+}
+
+export interface JobAnalysis {
+  reason: string
+  tailoredSummary: string
+  sponsorshipNote: string
+  matchingStrengths: string[]
+  missingKeywords: string[]
+}
+
+export interface TailoredRole {
+  company: string
+  title: string
+  bullets: string[]
+}
+
+export interface TailoredResume {
+  coreCompetencies: string[]
+  technicalSkills: string[]
+  experience: TailoredRole[]
+}
+
+export interface JobDetail extends JobListItem {
+  description: string
+  createdAt: string
+  analysis: JobAnalysis
+  coverLetter: string | null
+  tailored: TailoredResume | null
+}
+
+/** The whole tracking state is sent on every save, so a cleared date is cleared on the server too. */
+export interface TrackingUpdate {
+  id: number
+  status: JobStatus
+  appliedOn: string | null
+  interviewOn: string | null
+}
+
+export interface Paged<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface JobMetrics {
+  total: number
+  pending: number
+  applied: number
+  interviewing: number
+  highMatch: number
+  actionNeeded: number
+  averageScore: number
+}
+
+export interface ImportResult {
+  total: number
+  saved: number
+  duplicates: number
+  blacklisted: number
+  rejected: number
+  failed: number
+}
+
+/** One entry of a scraped jobs file, which is the same shape the importer accepts. */
+export interface ScrapedJob {
+  jobTitle: string
+  company: string
+  location?: string
+  date?: string
+  jobUrl: string
+  jobDescription?: string
+}
+
+/** Anything left out falls back to the board's configured search. */
+export interface ScrapeRequest {
+  board: string
+  keywords?: string
+  maxJobs?: number
+  companies?: string[]
+}
+
+/** What one board's configuration falls back to, used to prefill the scrape form. */
+export interface ScrapeDefaults {
+  board: string
+  keywords: string
+  location: string
+  maxJobs: number
+  companies: string[]
+  /** An ATS lists one employer at a time, so it takes company tokens and keywords only filter. */
+  searchesByCompany: boolean
+}
+
+/** A scraped posting plus what the importer would already do with it. */
+export interface ScrapedJobRow {
+  job: ScrapedJob
+  isDuplicate: boolean
+  isBlacklisted: boolean
+}
+
+export interface ScrapeResult {
+  file: string
+  count: number
+  jobs: ScrapedJobRow[]
+}
+
+/** Everything the grid can be narrowed by. Tabs are presets that write into this shape. */
+export interface JobFilters {
+  company?: string
+  status?: JobStatus
+  minScore?: number
+  board?: string
+  from?: string
+  to?: string
+}
