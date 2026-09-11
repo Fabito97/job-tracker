@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using Tracker.Features.Jobs.Dtos;
 using Tracker.Features.Jobs.Services;
 
@@ -9,10 +10,10 @@ namespace Tracker.Infrastructure.Services;
 public sealed partial class ProviderAgnosticJobService(
     IChatClient aiClient,
     PromptStore prompts,
+    PromptComposer composer,
+    IOptions<CandidateCriteria> criteriaOptions,
     ILogger<ProviderAgnosticJobService> logger) : IJobAiService
 {
-    private const string FullStack = "Full Stack";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -25,11 +26,8 @@ public sealed partial class ProviderAgnosticJobService(
 
     public async Task<JobAnalysisResult?> AnalyzeAsync(ImportJobRequest job, CancellationToken ct)
     {
-        var prompt = prompts.Get("AnalysisPrompt").Render(
-            ("CV_BACKEND", prompts.Get("cv")),
-            ("CV_FULLSTACK", prompts.Get("cv_f")),
-            ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Text()))
-        );
+        var criteria = criteriaOptions.Value;
+        var prompt = composer.ComposeAnalysisPrompt(job.JobTitle, job.Company, job.Location, job.Text(), criteria);
 
         logger.LogInformation("Sending '{JobTitle}' at '{Company}' to AI for analysis...", job.JobTitle, job.Company);
 
@@ -136,7 +134,7 @@ public sealed partial class ProviderAgnosticJobService(
         return null;
     }
 
-    private string ResumeFor(Job job) => prompts.Get(job.ResumeVersion == FullStack ? "cv_f" : "cv");
+    private string ResumeFor(Job job) => prompts.GetResume(job.ResumeVersion);
 
     private static string Describe(string title, string company, string? location, string description) =>
         $"""

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Tracker.Features.Jobs.Dtos;
 using Tracker.Features.Jobs.Services;
 using Tracker.Infrastructure.Data;
@@ -8,6 +9,7 @@ public sealed class JobImportService(
     TrackerDbContext db,
     IJobAiService ai,
     CompanyBlacklist blacklist,
+    IOptions<CandidateCriteria> criteriaOptions,
     ILogger<JobImportService> logger) : IJobImportService
 {
     private const int MaxConcurrentAnalyses = 5;
@@ -44,6 +46,7 @@ public sealed class JobImportService(
         var results = await Task.WhenAll(candidates.Select(job => AnalyzeAsync(job, gate, ct)));
 
         var saved = results.Where(r => r.Job is not null).Select(r => r.Job!).ToList();
+        var rejectedCount = results.Count(r => r.Rejected);
         failed += results.Count(r => r.Failed);
 
         if (saved.Count > 0)
@@ -57,11 +60,11 @@ public sealed class JobImportService(
             Saved: saved.Count,
             Duplicates: duplicates,
             Blacklisted: blacklisted,
-            Rejected: results.Length - saved.Count - results.Count(r => r.Failed),
+            Rejected: rejectedCount,
             Failed: failed);
     }
 
-    private async Task<(Job? Job, bool Failed)> AnalyzeAsync(ImportJobRequest request, SemaphoreSlim gate, CancellationToken ct)
+    private async Task<(Job? Job, bool Failed, bool Rejected)> AnalyzeAsync(ImportJobRequest request, SemaphoreSlim gate, CancellationToken ct)
     {
         await gate.WaitAsync(ct);
         try
@@ -70,26 +73,35 @@ public sealed class JobImportService(
             if (analysis is null)
             {
                 logger.LogWarning("AI analysis returned null for '{JobTitle}' ({JobUrl}) - Marked as FAILED.", request.JobTitle, request.JobUrl);
-                return (null, true);
+                return (null, true, false);
             }
+
+            var keepRejected = criteriaOptions.Value.KeepRejectedJobs;
 
             if (!analysis.ShouldApply)
             {
                 logger.LogInformation(
-                    "AI rejected '{JobTitle}' at '{Company}' (Score: {Score}/100, Reason: {Reason}) - Dropping from import.",
+                    "AI rejected '{JobTitle}' at '{Company}' (Score: {Score}/100, Reason: {Reason}).",
                     request.JobTitle, request.Company, analysis.Score, analysis.Reason);
-                return (null, false);
+
+                if (keepRejected)
+                {
+                    logger.LogInformation("Saving rejected job '{JobTitle}' with status 'Rejected' for user review.", request.JobTitle);
+                    return (ToJob(request, analysis, JobStatus.Rejected), false, true);
+                }
+
+                return (null, false, true);
             }
 
             logger.LogInformation(
                 "AI approved '{JobTitle}' at '{Company}' (Score: {Score}/100) - Queued for database save.",
                 request.JobTitle, request.Company, analysis.Score);
-            return (ToJob(request, analysis), false);
+            return (ToJob(request, analysis), false, false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Could not analyze '{JobTitle}' ({JobUrl})", request.JobTitle, request.JobUrl);
-            return (null, true);
+            return (null, true, false);
         }
         finally
         {
@@ -97,9 +109,9 @@ public sealed class JobImportService(
         }
     }
 
-    private static Job ToJob(ImportJobRequest request, JobAnalysisResult analysis)
+    private static Job ToJob(ImportJobRequest request, JobAnalysisResult analysis, JobStatus? overrideStatus = null)
     {
-        var status = Enum.TryParse<JobStatus>(request.Status, ignoreCase: true, out var parsed) ? parsed : JobStatus.Pending;
+        var status = overrideStatus ?? (Enum.TryParse<JobStatus>(request.Status, ignoreCase: true, out var parsed) ? parsed : JobStatus.Pending);
         var now = DateTimeOffset.UtcNow;
 
         return new Job
@@ -127,3 +139,4 @@ public sealed class JobImportService(
         };
     }
 }
+

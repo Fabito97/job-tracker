@@ -14,7 +14,9 @@ var config = builder.Configuration;
 
 builder.Services.AddDbContext<TrackerDbContext>(o => o.UseSqlite(config.GetConnectionString("Default")));
 builder.Services.AddSingleton<PromptStore>();
+builder.Services.AddSingleton<PromptComposer>();
 builder.Services.AddSingleton<CompanyBlacklist>();
+builder.Services.Configure<CandidateCriteria>(config.GetSection("AnalysisCriteria"));
 
 // 1. Register the universal AI client factory & IChatClient
 builder.Services.AddSingleton<IAiClientFactory, AiClientFactory>();
