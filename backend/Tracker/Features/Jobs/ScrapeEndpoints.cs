@@ -52,16 +52,17 @@ public static class ScrapeEndpoints
         return TypedResults.Ok(new ScrapeResult(file, annotated.Count, annotated));
     }
 
-    private static IEnumerable<ScrapeDefaults> GetDefaults(
+    private static Ok<List<ScrapeDefaults>> GetDefaults(
         [FromServices] IEnumerable<IJobBoardScraper> scrapers,
         [FromServices] IOptions<ScraperOptions> options) =>
-        scrapers.Select(scraper =>
+        TypedResults.Ok(scrapers.Select(scraper =>
         {
             var board = options.Value.For(scraper.Board);
 
             return new ScrapeDefaults(scraper.Board, board.Keywords, board.Location, board.MaxJobs,
-                board.Companies, scraper.SearchesByCompany);
-        });
+                board.Companies, scraper.SearchesByCompany,
+                RemoteOnly: string.Equals(board.JobType, "Remote", StringComparison.OrdinalIgnoreCase));
+        }).ToList());
 
     private static IEnumerable<string> GetFiles([FromServices] ScrapedJobStore store) => store.Files();
 

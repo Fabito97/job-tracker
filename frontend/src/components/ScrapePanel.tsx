@@ -1,11 +1,50 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, Loader, Search, Sparkles, X } from 'lucide-react'
+import { ExternalLink, Search, Sparkles, X } from 'lucide-react'
 import { Button } from './Button'
 import { useImportJobs } from '@/hooks/useJobMutations'
 import { useScrapeBoard, useScrapeDefaults } from '@/hooks/useScraper'
 import { cn } from '@/lib/utils'
-import type { ImportResult, ScrapedJobRow } from '@/types'
-import { useScrapeData, usePersistentScrapeData } from '@/hooks/useScrapeData'
+import type { ImportResult, ScrapedJobRow, ScrapeDefaults } from '@/types'
+import { usePersistentScrapeData } from '@/hooks/useScrapeData'
+
+const FALLBACK_BOARDS: ScrapeDefaults[] = [
+  {
+    board: 'LinkedIn',
+    keywords: 'C# ".NET" software engineer',
+    location: 'Remote',
+    maxJobs: 25,
+    companies: [],
+    searchesByCompany: false,
+    remoteOnly: true,
+  },
+  {
+    board: 'Indeed',
+    keywords: 'C# .NET backend developer',
+    location: 'Nigeria',
+    maxJobs: 25,
+    companies: [],
+    searchesByCompany: false,
+    remoteOnly: false,
+  },
+  {
+    board: 'Greenhouse',
+    keywords: '.NET C#',
+    location: 'Remote',
+    maxJobs: 100,
+    companies: ['virtu', 'growe', 'nintex', 'opentable', 'livefront', 'blackduck', 'ivalua', 'caseguard'],
+    searchesByCompany: true,
+    remoteOnly: true,
+  },
+  {
+    board: 'Lever',
+    keywords: '.NET C#',
+    location: 'Remote',
+    maxJobs: 100,
+    companies: ['3pillarglobal', 'margo-group', 'Ubiminds', 'accesssoftek'],
+    searchesByCompany: true,
+    remoteOnly: true,
+  },
+]
 
 /** Analysis is billed per job, so a run is triaged here before any of it is sent off. */
 export function ScrapePanel({ onClose }: { onClose: () => void }) {
@@ -13,34 +52,29 @@ export function ScrapePanel({ onClose }: { onClose: () => void }) {
   const scrape = useScrapeBoard()
   const importJobs = useImportJobs()
 
-  // const {
-  //   // rows,
-  //   setRows,
-  //   selected,
-  //   setSelected,
-  //   imported,
-  //   setImported,
-  //   toggle,
-  //   allSelected,
-  //   picked,
-  // } = useScrapeData(scrape)
-
   const {rows} = usePersistentScrapeData(scrape)
 
   // Null means "not chosen or typed yet", so a configured default shows through without an effect.
   const [pickedBoard, setPickedBoard] = useState<string | null>(null)
   const [typedKeywords, setTypedKeywords] = useState<string | null>(null)
+  const [typedLocation, setTypedLocation] = useState<string | null>(null)
+  const [typedRemoteOnly, setTypedRemoteOnly] = useState<boolean | null>(null)
+  const [datePosted, setDatePosted] = useState<string>('any')
+  const [experienceLevel, setExperienceLevel] = useState<string>('all')
+  const [excludeKeywords, setExcludeKeywords] = useState<string>('')
   const [typedCompanies, setTypedCompanies] = useState<string | null>(null)
   const [typedMax, setTypedMax] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [imported, setImported] = useState<ImportResult | null>(null)
   // const [rows, setRows] = useState<ScrapedJobRow[]>([])
 
-  const boards = defaults.data ?? []
-  const board = pickedBoard ?? boards[0]?.board ?? ''
+  const boards = defaults.data && defaults.data.length > 0 ? defaults.data : FALLBACK_BOARDS
+  const board = pickedBoard ?? boards[0]?.board ?? 'LinkedIn'
   const current = boards.find((entry) => entry.board === board)
 
   const keywords = typedKeywords ?? current?.keywords ?? ''
+  const location = typedLocation ?? current?.location ?? ''
+  const remoteOnly = typedRemoteOnly ?? current?.remoteOnly ?? false
   const maxJobs = typedMax ?? current?.maxJobs ?? 25
   const companies = typedCompanies ?? current?.companies.join('\n') ?? ''
   const byCompany = current?.searchesByCompany ?? false
@@ -50,6 +84,8 @@ export function ScrapePanel({ onClose }: { onClose: () => void }) {
   const changeBoard = (next: string) => {
     setPickedBoard(next)
     setTypedKeywords(null)
+    setTypedLocation(null)
+    setTypedRemoteOnly(null)
     setTypedCompanies(null)
     setTypedMax(null)
   }
@@ -74,8 +110,13 @@ export function ScrapePanel({ onClose }: { onClose: () => void }) {
     scrape.mutate({
       board,
       keywords: keywords.trim() || undefined,
+      location: location.trim() || undefined,
+      remoteOnly,
+      datePosted: datePosted !== 'any' ? datePosted : undefined,
+      experienceLevel: experienceLevel !== 'all' ? experienceLevel : undefined,
+      excludeKeywords: excludeKeywords.trim() || undefined,
       maxJobs,
-      companies: byCompany ? companies.split('\n').map((line) => line.trim()).filter(Boolean) : undefined,
+      companies: byCompany ? companies.split('\n').map((line: string) => line.trim()).filter(Boolean) : undefined,
     })
   }
 
@@ -115,7 +156,7 @@ export function ScrapePanel({ onClose }: { onClose: () => void }) {
                   ? `${scrape.data.count} found, saved to ${scrape.data.file}. Pick the ones to analyze.`
                   : byCompany
                     ? 'Reads each company board through its API, so one request covers every job it has open.'
-                    : `Searching ${current?.location ?? 'the configured location'}.`}
+                    : `Searching ${location ? location : 'configured locations'}${remoteOnly ? ' (Remote)' : ''}.`}
             </p>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded p-1 text-gray-400 hover:bg-gray-100">
@@ -123,53 +164,117 @@ export function ScrapePanel({ onClose }: { onClose: () => void }) {
           </button>
         </header>
 
-        <div className="flex flex-wrap items-end gap-3 border-b border-gray-200 bg-gray-50 px-6 py-4">
-          <label className="flex flex-col">
-            <span className="text-xs font-medium text-gray-500">Board</span>
-            <select
-              value={board}
-              onChange={(event) => changeBoard(event.target.value)}
-              className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-            >
-              {boards.map((entry) => (
-                <option key={entry.board} value={entry.board}>
-                  {entry.board}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="flex flex-col border-b border-gray-200 bg-gray-50 px-6 py-4 gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col">
+              <span className="text-xs font-medium text-gray-500">Board</span>
+              <select
+                value={board}
+                onChange={(event) => changeBoard(event.target.value)}
+                className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                {boards.map((entry) => (
+                  <option key={entry.board} value={entry.board}>
+                    {entry.board}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="flex min-w-[18rem] flex-1 flex-col">
-            <span className="text-xs font-medium text-gray-500">
-              {byCompany ? 'Keywords (filters the results)' : 'Keywords'}
-            </span>
-            <input
-              value={keywords}
-              onChange={(event) => setTypedKeywords(event.target.value)}
-              onKeyDown={(event) => event.key === 'Enter' && !isBusy && run()}
-              placeholder={byCompany ? '.NET C#' : 'e.g. ".NET" posted in the past 24 hours'}
-              className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-          </label>
+            <label className="flex min-w-[14rem] flex-1 flex-col">
+              <span className="text-xs font-medium text-gray-500">
+                {byCompany ? 'Keywords (filters results)' : 'Keywords / Role'}
+              </span>
+              <input
+                value={keywords}
+                onChange={(event) => setTypedKeywords(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && !isBusy && run()}
+                placeholder={byCompany ? '.NET C#' : 'e.g. "C#" ".NET" engineer'}
+                className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
 
-          <label className="flex w-24 flex-col">
-            <span className="text-xs font-medium text-gray-500">Max jobs</span>
-            <input
-              type="number"
-              min={1}
-              max={250}
-              value={maxJobs}
-              onChange={(event) => setTypedMax(Number(event.target.value))}
-              className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-          </label>
+            <label className="flex min-w-[13rem] flex-1 flex-col">
+              <span className="text-xs font-medium text-gray-500">Location(s) &mdash; comma-separated</span>
+              <input
+                value={location}
+                onChange={(event) => setTypedLocation(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && !isBusy && run()}
+                placeholder="e.g. Nigeria, EMEA, Worldwide"
+                className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
 
-          <Button onClick={run} disabled={isBusy} leftIcon={<Search size={16} />}>
-            {scrape.isPending ? 'Scraping...' : 'Run scrape'}
-          </Button>
+            <label className="flex items-center gap-2 pb-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remoteOnly}
+                onChange={(event) => setTypedRemoteOnly(event.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Remote only</span>
+            </label>
+
+            <label className="flex w-20 flex-col">
+              <span className="text-xs font-medium text-gray-500">Max jobs</span>
+              <input
+                type="number"
+                min={1}
+                max={250}
+                value={maxJobs}
+                onChange={(event) => setTypedMax(Number(event.target.value))}
+                className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+
+            <Button onClick={run} disabled={isBusy} leftIcon={<Search size={16} />}>
+              {scrape.isPending ? 'Scraping...' : 'Run scrape'}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200/80 text-xs text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-gray-500">Posted:</span>
+              <select
+                value={datePosted}
+                onChange={(e) => setDatePosted(e.target.value)}
+                className="rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+              >
+                <option value="any">Any time</option>
+                <option value="24h">Past 24 hours</option>
+                <option value="week">Past week (7d)</option>
+                <option value="month">Past month (30d)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-gray-500">Experience:</span>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+              >
+                <option value="all">All levels</option>
+                <option value="entry">Entry / Junior</option>
+                <option value="mid">Mid-Senior</option>
+                <option value="senior">Senior / Lead</option>
+                <option value="director">Director / Exec</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-1 min-w-[15rem]">
+              <span className="font-medium text-gray-500 whitespace-nowrap">Exclude titles:</span>
+              <input
+                value={excludeKeywords}
+                onChange={(e) => setExcludeKeywords(e.target.value)}
+                placeholder="e.g. Intern, Java, Clearance, Unpaid"
+                className="flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs placeholder:text-gray-400"
+              />
+            </div>
+          </div>
 
           {byCompany && (
-            <label className="flex w-full flex-col">
+            <label className="flex w-full flex-col pt-1">
               <span className="text-xs font-medium text-gray-500">
                 Companies &mdash; one board token or URL per line
               </span>

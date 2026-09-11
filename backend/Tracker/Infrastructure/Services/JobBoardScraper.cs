@@ -36,7 +36,14 @@ public abstract class JobBoardScraper(IOptions<ScraperOptions> options, ILogger 
     /// </summary>
     protected abstract string CardScript { get; }
 
-    protected abstract string SearchUrl(BoardOptions board, string keywords, int start);
+    protected abstract string SearchUrl(
+        BoardOptions board,
+        string keywords,
+        string location,
+        bool remoteOnly,
+        string? datePosted,
+        string? experienceLevel,
+        int start);
 
     /// <summary>
     /// Whether each posting is visited in its own browser context. Indeed clamps down on a session once
@@ -55,6 +62,25 @@ public abstract class JobBoardScraper(IOptions<ScraperOptions> options, ILogger 
         var wanted = Math.Clamp(request.MaxJobs ?? board.MaxJobs, 1, MaxJobsPerRun);
         var delayMs = board.DelayMs ?? settings.DelayMs;
 
+        var rawLocations = string.IsNullOrWhiteSpace(request.Location) ? board.Location : request.Location;
+        var locations = rawLocations
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(loc => loc.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (locations.Count == 0) locations.Add(board.Location);
+
+        var remoteOnly = request.RemoteOnly ?? string.Equals(board.JobType, "Remote", StringComparison.OrdinalIgnoreCase);
+        var datePosted = string.IsNullOrWhiteSpace(request.DatePosted) ? null : request.DatePosted.Trim();
+        var experienceLevel = string.IsNullOrWhiteSpace(request.ExperienceLevel) || string.Equals(request.ExperienceLevel, "all", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : request.ExperienceLevel.Trim();
+
+        var exclusions = (request.ExcludeKeywords ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => s.Length > 0)
+            .ToList();
+
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = settings.Headless });
         await using var context = await browser.NewContextAsync(new() { UserAgent = settings.UserAgent });
@@ -62,7 +88,7 @@ public abstract class JobBoardScraper(IOptions<ScraperOptions> options, ILogger 
         var page = await context.NewPageAsync();
         page.SetDefaultTimeout(PageTimeoutMs);
 
-        var jobs = await CollectCardsAsync(page, board, keywords, wanted, delayMs, ct);
+        var jobs = await CollectCardsAsync(page, board, keywords, locations, remoteOnly, datePosted, experienceLevel, exclusions, wanted, delayMs, ct);
 
         // Sequential and paced. Running these in parallel is what earns a throttle, and a throttled
         // request loses the description entirely, so going slower returns more.
@@ -72,35 +98,56 @@ public abstract class JobBoardScraper(IOptions<ScraperOptions> options, ILogger 
     }
 
     private async Task<List<ImportJobRequest>> CollectCardsAsync(
-        IPage page, BoardOptions board, string keywords, int wanted, int delayMs, CancellationToken ct)
+        IPage page,
+        BoardOptions board,
+        string keywords,
+        IReadOnlyList<string> locations,
+        bool remoteOnly,
+        string? datePosted,
+        string? experienceLevel,
+        IReadOnlyList<string> exclusions,
+        int wanted,
+        int delayMs,
+        CancellationToken ct)
     {
         var jobs = new List<ImportJobRequest>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        for (var start = 0; jobs.Count < wanted; start += CardsPerPage)
+        foreach (var location in locations)
         {
-            ct.ThrowIfCancellationRequested();
-            if (start > 0) await Task.Delay(Pause(delayMs, 1), ct);
+            if (jobs.Count >= wanted) break;
 
-            var response = await page.GotoAsync(SearchUrl(board, keywords, start), new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-
-            // Told apart from a genuine end of results, which would otherwise truncate the run in silence.
-            if (IsThrottled(response))
+            for (var start = 0; jobs.Count < wanted; start += CardsPerPage)
             {
-                logger.LogWarning("{Board}: stopped at {Count} postings, the search is being throttled", Board, jobs.Count);
-                break;
+                ct.ThrowIfCancellationRequested();
+                if (start > 0 || location != locations[0]) await Task.Delay(Pause(delayMs, 1), ct);
+
+                var url = SearchUrl(board, keywords, location, remoteOnly, datePosted, experienceLevel, start);
+                var response = await page.GotoAsync(url, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+                // Told apart from a genuine end of results, which would otherwise truncate the run in silence.
+                if (IsThrottled(response))
+                {
+                    logger.LogWarning("{Board}: stopped at {Count} postings for {Location}, the search is being throttled", Board, jobs.Count, location);
+                    break;
+                }
+
+                var cards = (await page.EvaluateAsync(CardScript))?.Deserialize<List<ImportJobRequest>>(Json) ?? [];
+
+                // Exclude negative keywords from title, and deduplicate
+                var fresh = cards.Where(card =>
+                    card.JobUrl.Length > 0 &&
+                    !exclusions.Any(ex => card.JobTitle.Contains(ex, StringComparison.OrdinalIgnoreCase)) &&
+                    seen.Add(card.JobUrl)
+                ).ToList();
+
+                if (fresh.Count == 0) break;
+
+                jobs.AddRange(fresh);
             }
-
-            var cards = (await page.EvaluateAsync(CardScript))?.Deserialize<List<ImportJobRequest>>(Json) ?? [];
-
-            // Boards repeat cards across pages, and past the last page they repeat the previous one wholesale.
-            var fresh = cards.Where(card => card.JobUrl.Length > 0 && seen.Add(card.JobUrl)).ToList();
-            if (fresh.Count == 0) break;
-
-            jobs.AddRange(fresh);
         }
 
-        logger.LogInformation("{Board}: found {Count} postings for {Keywords}", Board, jobs.Count, keywords);
+        logger.LogInformation("{Board}: found {Count} postings across {Locations} for {Keywords}", Board, jobs.Count, string.Join(", ", locations), keywords);
 
         return jobs.Take(wanted).ToList();
     }

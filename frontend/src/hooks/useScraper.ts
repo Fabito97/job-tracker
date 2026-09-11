@@ -16,6 +16,7 @@ export function useScrapeDefaults() {
   return useQuery({
     queryKey: [QUERY_KEYS.scrapeDefaults],
     queryFn: () => api<ScrapeDefaults[]>('/api/scrape/defaults'),
-    staleTime: Infinity,
+    staleTime: 60_000,
+    retry: 2,
   })
 }

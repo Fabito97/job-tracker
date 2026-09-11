@@ -11,7 +11,8 @@ public sealed partial class ProviderAgnosticJobService(
     IChatClient aiClient,
     PromptStore prompts,
     PromptComposer composer,
-    IOptions<CandidateCriteria> criteriaOptions,
+    ISettingsService settings,
+    IResumeService resumes,
     ILogger<ProviderAgnosticJobService> logger) : IJobAiService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -26,8 +27,9 @@ public sealed partial class ProviderAgnosticJobService(
 
     public async Task<JobAnalysisResult?> AnalyzeAsync(ImportJobRequest job, CancellationToken ct)
     {
-        var criteria = criteriaOptions.Value;
-        var prompt = composer.ComposeAnalysisPrompt(job.JobTitle, job.Company, job.Location, job.Text(), criteria);
+        var criteria = settings.GetCriteria();
+        var activeResumes = await resumes.GetActiveResumesAsync(ct);
+        var prompt = composer.ComposeAnalysisPrompt(job.JobTitle, job.Company, job.Location, job.Text(), criteria, activeResumes);
 
         logger.LogInformation("Sending '{JobTitle}' at '{Company}' to AI for analysis...", job.JobTitle, job.Company);
 
@@ -79,8 +81,9 @@ public sealed partial class ProviderAgnosticJobService(
 
     public async Task<TailoredResume?> WriteTailoredResumeAsync(Job job, CancellationToken ct)
     {
+        var resumeText = await resumes.GetResumeTextAsync(job.ResumeVersion, ct);
         var prompt = prompts.Get("TailoredResumePrompt").Render(
-            ("CV", ResumeFor(job)),
+            ("CV", resumeText),
             ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
             ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords))
         );

@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
     <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
     <PackageReference Include="OpenAI" Version="2.12.0" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <!-- Pinned ahead of the version EF Core pulls in, which carries advisory GHSA-2m69-gcr7-jv3q. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
   </ItemGroup>

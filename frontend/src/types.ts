@@ -95,6 +95,11 @@ export interface ScrapeRequest {
   keywords?: string
   maxJobs?: number
   companies?: string[]
+  location?: string
+  remoteOnly?: boolean
+  datePosted?: string
+  experienceLevel?: string
+  excludeKeywords?: string
 }
 
 /** What one board's configuration falls back to, used to prefill the scrape form. */
@@ -106,6 +111,10 @@ export interface ScrapeDefaults {
   companies: string[]
   /** An ATS lists one employer at a time, so it takes company tokens and keywords only filter. */
   searchesByCompany: boolean
+  remoteOnly?: boolean
+  datePosted?: string
+  experienceLevel?: string
+  excludeKeywords?: string
 }
 
 /** A scraped posting plus what the importer would already do with it. */
@@ -129,4 +138,61 @@ export interface JobFilters {
   board?: string
   from?: string
   to?: string
+}
+
+export interface AiSettings {
+  provider: string
+  model: string
+  maskedApiKey: string
+  hasApiKey: boolean
+  baseUrl: string | null
+}
+
+export interface CriteriaSettings {
+  minScore: number
+  requiresSponsorship: boolean
+  requireClearanceCheck: boolean
+  targetLocation: string | null
+  keepRejectedJobs: boolean
+}
+
+export interface BlacklistSettings {
+  enabled: boolean
+  companies: string[]
+}
+
+export interface AppSettings {
+  ai: AiSettings
+  criteria: CriteriaSettings
+  blacklist: BlacklistSettings
+  availableProviders: string[]
+}
+
+export interface UpdateSettingsRequest {
+  ai?: {
+    provider?: string
+    model?: string
+    apiKey?: string
+    baseUrl?: string | null
+  }
+  criteria?: {
+    minScore?: number
+    requiresSponsorship?: boolean
+    requireClearanceCheck?: boolean
+    targetLocation?: string | null
+    keepRejectedJobs?: boolean
+  }
+  blacklist?: {
+    enabled?: boolean
+    companies?: string[]
+  }
+}
+
+export interface ResumeItem {
+  id: number
+  role: string
+  fileName: string
+  isDefault: boolean
+  createdAt: string
+  preview: string
 }

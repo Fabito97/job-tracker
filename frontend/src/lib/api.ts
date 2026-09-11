@@ -1,12 +1,18 @@
 const baseUrl = import.meta.env.VITE_API_URL ?? ''
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: init?.body ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
+    headers:
+      init?.body && !isFormData
+        ? { 'Content-Type': 'application/json', ...init.headers }
+        : init?.headers,
   })
 
   if (!response.ok) throw new Error((await response.text()) || response.statusText)
+
+  if (response.status === 204) return undefined as unknown as T
 
   return response.json() as Promise<T>
 }

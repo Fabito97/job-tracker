@@ -9,7 +9,7 @@ public sealed class JobImportService(
     TrackerDbContext db,
     IJobAiService ai,
     CompanyBlacklist blacklist,
-    IOptions<CandidateCriteria> criteriaOptions,
+    ISettingsService settings,
     ILogger<JobImportService> logger) : IJobImportService
 {
     private const int MaxConcurrentAnalyses = 5;
@@ -76,7 +76,7 @@ public sealed class JobImportService(
                 return (null, true, false);
             }
 
-            var keepRejected = criteriaOptions.Value.KeepRejectedJobs;
+            var keepRejected = settings.GetCriteria().KeepRejectedJobs;
 
             if (!analysis.ShouldApply)
             {

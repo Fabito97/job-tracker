@@ -18,43 +18,44 @@ public interface IAiClientFactory
     IChatClient CreateClient(AiClientOptions? options = null);
 }
 
-public sealed class AiClientFactory(IConfiguration config) : IAiClientFactory
+public sealed class AiClientFactory(ISettingsService settings, IConfiguration config) : IAiClientFactory
 {
-    public IChatClient GetClient() => CreateClient();
+    public IChatClient GetClient() => CreateClient(settings.GetAiOptions());
 
     public IChatClient CreateClient(AiClientOptions? overrides = null)
     {
-        var provider = (overrides?.Provider ?? config["AI:Provider"] ?? "gemini").Trim().ToLowerInvariant();
+        var active = settings.GetAiOptions();
+        var provider = (overrides?.Provider ?? active.Provider ?? config["AI:Provider"] ?? "gemini").Trim().ToLowerInvariant();
 
         return provider switch
         {
-            "gemini" => CreateGeminiClient(overrides),
-            "openai" => CreateOpenAiClient(overrides),
-            "groq" or "grok" => CreateGroqClient(overrides),
-            "custom" or "ollama" => CreateCustomOpenAiCompatibleClient(overrides),
+            "gemini" => CreateGeminiClient(overrides, active),
+            "openai" => CreateOpenAiClient(overrides, active),
+            "groq" or "grok" => CreateGroqClient(overrides, active),
+            "custom" or "ollama" => CreateCustomOpenAiCompatibleClient(overrides, active),
             _ => throw new NotSupportedException($"AI Provider '{provider}' is not supported. Supported providers are: gemini, openai, groq, grok, custom.")
         };
     }
 
-    private IChatClient CreateGeminiClient(AiClientOptions? overrides)
+    private IChatClient CreateGeminiClient(AiClientOptions? overrides, AiClientOptions active)
     {
-        var apiKey = overrides?.ApiKey ?? config["Gemini:ApiKey"] ?? config["AI:ApiKey"];
+        var apiKey = overrides?.ApiKey ?? (active.Provider == "gemini" ? active.ApiKey : null) ?? config["Gemini:ApiKey"] ?? config["AI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("Gemini API key is missing in configuration (Gemini:ApiKey).");
+            throw new InvalidOperationException("Gemini API key is missing. Set it in the settings or configuration (Gemini:ApiKey).");
 
-        var model = overrides?.Model ?? config["Gemini:Model"] ?? config["AI:Model"] ?? "gemini-2.5-flash";
+        var model = overrides?.Model ?? (active.Provider == "gemini" ? active.Model : null) ?? config["Gemini:Model"] ?? config["AI:Model"] ?? "gemini-2.5-flash";
 
         return new Client(apiKey: apiKey).AsIChatClient(model);
     }
 
-    private IChatClient CreateOpenAiClient(AiClientOptions? overrides)
+    private IChatClient CreateOpenAiClient(AiClientOptions? overrides, AiClientOptions active)
     {
-        var apiKey = overrides?.ApiKey ?? config["OpenAI:ApiKey"] ?? config["AI:ApiKey"];
+        var apiKey = overrides?.ApiKey ?? (active.Provider == "openai" ? active.ApiKey : null) ?? config["OpenAI:ApiKey"] ?? config["AI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("OpenAI API key is missing in configuration (OpenAI:ApiKey).");
+            throw new InvalidOperationException("OpenAI API key is missing. Set it in the settings or configuration (OpenAI:ApiKey).");
 
-        var model = overrides?.Model ?? config["OpenAI:Model"] ?? "gpt-4o-mini";
-        var baseUrl = overrides?.BaseUrl ?? config["OpenAI:BaseUrl"];
+        var model = overrides?.Model ?? (active.Provider == "openai" ? active.Model : null) ?? config["OpenAI:Model"] ?? "gpt-4o-mini";
+        var baseUrl = overrides?.BaseUrl ?? (active.Provider == "openai" ? active.BaseUrl : null) ?? config["OpenAI:BaseUrl"];
 
         if (!string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -66,14 +67,15 @@ public sealed class AiClientFactory(IConfiguration config) : IAiClientFactory
         return new ChatClient(model, apiKey).AsIChatClient();
     }
 
-    private IChatClient CreateGroqClient(AiClientOptions? overrides)
+    private IChatClient CreateGroqClient(AiClientOptions? overrides, AiClientOptions active)
     {
-        var apiKey = overrides?.ApiKey ?? config["Groq:ApiKey"] ?? config["Grok:ApiKey"] ?? config["AI:ApiKey"];
+        var isGroqOrGrok = active.Provider is "groq" or "grok";
+        var apiKey = overrides?.ApiKey ?? (isGroqOrGrok ? active.ApiKey : null) ?? config["Groq:ApiKey"] ?? config["Grok:ApiKey"] ?? config["AI:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("Groq/Grok API key is missing in configuration (Groq:ApiKey).");
+            throw new InvalidOperationException("Groq/Grok API key is missing. Set it in the settings or configuration (Groq:ApiKey).");
 
-        var model = overrides?.Model ?? config["Groq:Model"] ?? config["Grok:Model"] ?? "llama-3.3-70b-versatile";
-        var baseUrl = overrides?.BaseUrl ?? config["Groq:BaseUrl"] ?? config["Grok:BaseUrl"];
+        var model = overrides?.Model ?? (isGroqOrGrok ? active.Model : null) ?? config["Groq:Model"] ?? config["Grok:Model"] ?? "llama-3.3-70b-versatile";
+        var baseUrl = overrides?.BaseUrl ?? (isGroqOrGrok ? active.BaseUrl : null) ?? config["Groq:BaseUrl"] ?? config["Grok:BaseUrl"];
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -87,11 +89,12 @@ public sealed class AiClientFactory(IConfiguration config) : IAiClientFactory
         return openAiClient.GetChatClient(model).AsIChatClient();
     }
 
-    private IChatClient CreateCustomOpenAiCompatibleClient(AiClientOptions? overrides)
+    private IChatClient CreateCustomOpenAiCompatibleClient(AiClientOptions? overrides, AiClientOptions active)
     {
-        var apiKey = overrides?.ApiKey ?? config["CustomAI:ApiKey"] ?? "dummy-key";
-        var model = overrides?.Model ?? config["CustomAI:Model"] ?? "default";
-        var baseUrl = overrides?.BaseUrl ?? config["CustomAI:BaseUrl"] ?? "http://localhost:11434/v1";
+        var isCustom = active.Provider is "custom" or "ollama";
+        var apiKey = overrides?.ApiKey ?? (isCustom ? active.ApiKey : null) ?? config["CustomAI:ApiKey"] ?? "dummy-key";
+        var model = overrides?.Model ?? (isCustom ? active.Model : null) ?? config["CustomAI:Model"] ?? "default";
+        var baseUrl = overrides?.BaseUrl ?? (isCustom ? active.BaseUrl : null) ?? config["CustomAI:BaseUrl"] ?? "http://localhost:11434/v1";
 
         var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(baseUrl) };
         var openAiClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions);

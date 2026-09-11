@@ -9,6 +9,8 @@ export const QUERY_KEYS = {
   metrics: 'metrics',
   boards: 'boards',
   scrapeDefaults: 'scrape-defaults',
+  settings: 'settings',
+  resumes: 'resumes',
 } as const
 
 export interface Tab {

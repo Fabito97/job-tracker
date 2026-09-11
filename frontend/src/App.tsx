@@ -5,6 +5,7 @@ import { JobDetailPanel } from '@/components/JobDetailPanel'
 import { JobTable } from '@/components/JobTable'
 import { MetricCards } from '@/components/MetricCards'
 import { ScrapeButton } from '@/components/ScrapeButton'
+import { SettingsButton } from '@/components/SettingsButton'
 import { useBoards, useJobs, useMetrics } from '@/hooks/useJobs'
 import { TABS, type Tab } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -40,6 +41,7 @@ export default function App() {
             <p className="text-sm text-gray-500">Import a jobs.json file, let the engine score it, then track what you applied to.</p>
           </div>
           <div className="flex items-center gap-3">
+            <SettingsButton />
             <ScrapeButton />
             <ImportButton />
           </div>

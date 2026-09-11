@@ -9,9 +9,10 @@ public sealed class PromptComposer(PromptStore prompts)
         string company,
         string? location,
         string description,
-        CandidateCriteria criteria)
+        CandidateCriteria criteria,
+        IReadOnlyDictionary<string, string>? customResumes = null)
     {
-        var resumes = prompts.GetResumes();
+        var resumes = customResumes is { Count: > 0 } ? customResumes : prompts.GetResumes();
         var hasMultipleResumes = resumes.Count > 1;
 
         var sb = new StringBuilder();

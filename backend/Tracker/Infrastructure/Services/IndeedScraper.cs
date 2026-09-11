@@ -45,9 +45,50 @@ public sealed partial class IndeedScraper(IOptions<ScraperOptions> options, ILog
         })
         """;
 
-    protected override string SearchUrl(BoardOptions board, string keywords, int start) =>
-        $"https://www.indeed.com/jobs?q={Uri.EscapeDataString(keywords)}" +
-        $"&l={Uri.EscapeDataString(board.Location)}&start={start}";
+    protected override string SearchUrl(
+        BoardOptions board,
+        string keywords,
+        string location,
+        bool remoteOnly,
+        string? datePosted,
+        string? experienceLevel,
+        int start)
+    {
+        var url = new System.Text.StringBuilder($"https://www.indeed.com/jobs?q={Uri.EscapeDataString(keywords)}");
+        url.Append($"&l={Uri.EscapeDataString(location)}");
+
+        if (remoteOnly)
+        {
+            url.Append("&sc=0kf%3Aattr(DSQF7)%3B");
+        }
+
+        if (datePosted is { Length: > 0 })
+        {
+            var fromage = datePosted.ToLowerInvariant() switch
+            {
+                "24h" or "day" => "1",
+                "week" or "7d" => "7",
+                "month" or "30d" => "30",
+                _ => null
+            };
+            if (fromage is not null) url.Append($"&fromage={fromage}");
+        }
+
+        if (experienceLevel is { Length: > 0 })
+        {
+            var exp = experienceLevel.ToLowerInvariant() switch
+            {
+                "entry" => "entry_level",
+                "mid" => "mid_level",
+                "senior" => "senior_level",
+                _ => null
+            };
+            if (exp is not null) url.Append($"&explvl={exp}");
+        }
+
+        url.Append($"&start={start}");
+        return url.ToString();
+    }
 
     protected override async Task ReadPostingAsync(IPage page, ImportJobRequest job)
     {

@@ -1,12 +1,13 @@
 using System.Text.RegularExpressions;
+using Tracker.Infrastructure.Services;
 
 namespace Tracker.Infrastructure;
 
 /// <summary>
-/// Screens out companies listed in blacklisted.txt before any money is spent on an AI call.
+/// Screens out companies listed in blacklist settings before any money is spent on an AI call.
 /// The check runs in code rather than in the prompt so it is deterministic and free.
 /// </summary>
-public sealed partial class CompanyBlacklist(PromptStore prompts)
+public sealed partial class CompanyBlacklist(ISettingsService settingsService)
 {
     // Entries carry trailing notes such as "Devcare – Columbus, OH" or "Brighter Brain (aka ...)".
     private static readonly string[] NoteSeparators = [" or ", ";", "(", "~", "–", "—", "/"];
@@ -16,21 +17,19 @@ public sealed partial class CompanyBlacklist(PromptStore prompts)
     [GeneratedRegex(@"[^\p{L}\p{N}]+")]
     private static partial Regex WordSeparator();
 
-    private readonly string[] _entries = [.. prompts.Get("blacklisted")
-        .Split('\n')
-        .Select(Key)
-        .Where(entry => entry.Length >= 3)
-        .Distinct()];
-
     public bool IsBlacklisted(string? company)
     {
-        var key = Key(company);
+        var blacklist = settingsService.GetBlacklistSettings();
+        if (!blacklist.Enabled) return false;
+
+        var key = NormalizeKey(company);
+        if (key.Length == 0) return false;
 
         // Whole words only, so "Meta" is not caught by the entry "Metahorizon".
-        return key.Length > 0 && _entries.Any(e => e == key || e.StartsWith($"{key} ") || key.StartsWith($"{e} "));
+        return blacklist.NormalizedKeys.Any(e => e == key || e.StartsWith($"{key} ") || key.StartsWith($"{e} "));
     }
 
-    private static string Key(string? value)
+    public static string NormalizeKey(string? value)
     {
         var name = (value ?? string.Empty).Split(NoteSeparators, StringSplitOptions.None)[0];
 

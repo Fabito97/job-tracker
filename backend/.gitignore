@@ -31,6 +31,10 @@ cv_f.txt
 !.vscode/extensions.json
 
 */appsettings.json
+**/Infrastructure/Data/settings.json
+**/Infrastructure/Data/Jobs/
+**/Infrastructure/Data/Resumes/
+**/Infrastructure/Data/*.json
 
 # ==========================================
 # .NET Generated / Local Files
