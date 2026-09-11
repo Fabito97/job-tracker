@@ -67,14 +67,28 @@ public sealed class JobImportService(
         try
         {
             var analysis = await ai.AnalyzeAsync(request, ct);
-            if (analysis is null) return (null, true);
+            if (analysis is null)
+            {
+                logger.LogWarning("AI analysis returned null for '{JobTitle}' ({JobUrl}) - Marked as FAILED.", request.JobTitle, request.JobUrl);
+                return (null, true);
+            }
 
-            // Anything the engine says not to apply for is dropped rather than stored.
-            return (analysis.ShouldApply ? ToJob(request, analysis) : null, false);
+            if (!analysis.ShouldApply)
+            {
+                logger.LogInformation(
+                    "AI rejected '{JobTitle}' at '{Company}' (Score: {Score}/100, Reason: {Reason}) - Dropping from import.",
+                    request.JobTitle, request.Company, analysis.Score, analysis.Reason);
+                return (null, false);
+            }
+
+            logger.LogInformation(
+                "AI approved '{JobTitle}' at '{Company}' (Score: {Score}/100) - Queued for database save.",
+                request.JobTitle, request.Company, analysis.Score);
+            return (ToJob(request, analysis), false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Could not analyze {JobUrl}", request.JobUrl);
+            logger.LogError(ex, "Could not analyze '{JobTitle}' ({JobUrl})", request.JobTitle, request.JobUrl);
             return (null, true);
         }
         finally

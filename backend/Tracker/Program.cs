@@ -16,29 +16,12 @@ builder.Services.AddDbContext<TrackerDbContext>(o => o.UseSqlite(config.GetConne
 builder.Services.AddSingleton<PromptStore>();
 builder.Services.AddSingleton<CompanyBlacklist>();
 
-// 1. Register the abstract universal client interface wrapper
-// How they connect: The DI container resolves the "Provider" string 
-// and outputs a unified IChatClient that your JobService can consume.
-builder.Services.AddSingleton<IChatClient>(sp =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    var provider = config["AI:Provider"]; // e.g., "gemini" or "groq"
-    var model = config["AI:Model"] ?? "gemini-2.5-flash";;  
+// 1. Register the universal AI client factory & IChatClient
+builder.Services.AddSingleton<IAiClientFactory, AiClientFactory>();
+builder.Services.AddTransient<IChatClient>(sp => sp.GetRequiredService<IAiClientFactory>().GetClient());
 
-    return provider switch
-    {
-        "gemini" => new Client(apiKey: config["Gemini:ApiKey"]).AsIChatClient(model),
-        _ => throw new InvalidOperationException("Unknown provider")
-    };
-});
-
-// 2. Wire up your provider-agnostic implementation to the IJobAiService interface
-builder.Services.AddScoped<IJobAiService, ProviderAgnosticJobService>(); 
-
-
-
-// Swapped to your updated Gemini implementation
-// builder.Services.AddScoped<IJobAiService, GeminiJobService>();
+// 2. Wire up provider-agnostic implementation to IJobAiService interface
+builder.Services.AddScoped<IJobAiService, ProviderAgnosticJobService>();
 
 builder.Services.AddScoped<IJobImportService, JobImportService>();
 builder.Services.Configure<ScraperOptions>(config.GetSection("Scraper"));

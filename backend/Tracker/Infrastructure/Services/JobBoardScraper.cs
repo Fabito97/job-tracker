@@ -105,7 +105,7 @@ public abstract class JobBoardScraper(IOptions<ScraperOptions> options, ILogger 
         return jobs.Take(wanted).ToList();
     }
 
-    private async Task VisitPostingAsync(
+    private async Task VisitPostingAsync(   
         IBrowser browser, IPage sharedPage, ImportJobRequest job, ScraperOptions settings, int delayMs, CancellationToken ct)
     {
         for (var attempt = 1; ; attempt++)
