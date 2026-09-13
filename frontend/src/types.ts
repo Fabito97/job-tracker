@@ -66,6 +66,7 @@ export interface TailorResumePayload {
   regenerate?: boolean
   confirmedSkills?: string[]
   notes?: string | null
+  mode?: 'refine' | 'fresh'
 }
 
 export interface Paged<T> {

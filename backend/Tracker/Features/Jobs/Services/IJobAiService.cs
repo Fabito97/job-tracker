@@ -10,5 +10,5 @@ public interface IJobAiService
     Task<string> WriteCoverLetterAsync(Job job, CancellationToken ct);
 
     /// <summary>Rewrites the resume version that matched this posting so it speaks to this posting.</summary>
-    Task<TailoredResume?> WriteTailoredResumeAsync(Job job, CancellationToken ct);
+    Task<TailoredResume?> WriteTailoredResumeAsync(Job job, string? mode = null, CancellationToken ct = default);
 }

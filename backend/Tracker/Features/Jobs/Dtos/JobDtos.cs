@@ -91,9 +91,10 @@ public record UpdateTrackingRequest(JobStatus Status, DateOnly? AppliedOn, DateO
 /// </summary>
 public record UpdateJobDirectivesRequest(List<string>? ConfirmedSkills, string? TailoringNotes);
 
-/// <summary>
-/// Optional directives when triggering tailored resume generation.
-/// </summary>
-public record TailorResumeRequest(bool? Regenerate = null, List<string>? ConfirmedSkills = null, string? Notes = null);
+public record TailorResumeRequest(
+    bool? Regenerate = null,
+    List<string>? ConfirmedSkills = null,
+    string? Notes = null,
+    string? Mode = null);
 
 public record JobMetrics(int Total, int Pending, int Applied, int Interviewing, int HighMatch, int ActionNeeded, int AverageScore);

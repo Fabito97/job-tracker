@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Check, ChevronDown, Edit3, ExternalLink, FileText, Plus, Sparkles, Trash2, X } from 'lucide-react'
+import { Check, ChevronDown, Edit3, ExternalLink, FileText, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import { Button } from './Button'
 import { CopyButton } from './CopyButton'
 import { StatusBadge } from './StatusBadge'
@@ -117,7 +117,7 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
                   className="inline-flex items-center gap-1.5 rounded-l-lg border border-r-0 border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
                 >
                   <Sparkles size={16} className="text-blue-600" />
-                  <span>{resume.isPending ? 'Tailoring...' : job.tailored ? 'Redo resume' : 'Tailor resume'}</span>
+                  <span>{resume.isPending ? 'Tailoring...' : job.tailored ? 'Refine resume' : 'Tailor resume'}</span>
                 </button>
                 <button
                   type="button"
@@ -130,18 +130,38 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
                 </button>
 
                 {showNotesMenu && (
-                  <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+                  <div className="absolute left-0 top-full z-20 mt-1 w-60 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
                     <button
                       type="button"
                       onClick={() => {
                         setShowNotesEditor(true)
-                        setShowNotesMenu(false)
                       }}
                       className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
                     >
                       <Edit3 size={13} className="text-blue-600" />
                       <span>{job.tailoringNotes ? 'Edit tailoring directives' : 'Add tailoring directives'}</span>
                     </button>
+
+                    {job.tailored && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNotesMenu(false)
+                          resume.mutate({
+                            id: job.id,
+                            regenerate: true,
+                            mode: 'fresh',
+                            confirmedSkills: job.confirmedSkills,
+                            notes: job.tailoringNotes,
+                          })
+                        }}
+                        className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        <RotateCcw size={13} className="text-amber-600" />
+                        <span>Start fresh from base CV</span>
+                      </button>
+                    )}
+
                     {job.tailoringNotes && (
                       <button
                         type="button"
@@ -225,7 +245,7 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
                     }}
                     leftIcon={<Sparkles size={14} />}
                   >
-                    {resume.isPending ? 'Tailoring...' : 'Tailor with directives'}
+                    {resume.isPending ? 'Tailoring...' : job.tailored ? 'Refine with directives' : 'Tailor with directives'}
                   </Button>
                 </div>
               </div>

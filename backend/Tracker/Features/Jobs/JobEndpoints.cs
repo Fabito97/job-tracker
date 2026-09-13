@@ -178,7 +178,7 @@ public static class JobEndpoints
         var shouldRegenerate = job.Tailored is null || request?.Regenerate is true;
         if (shouldRegenerate)
         {
-            job.Tailored = await ai.WriteTailoredResumeAsync(job, ct);
+            job.Tailored = await ai.WriteTailoredResumeAsync(job, request?.Mode, ct);
             await db.SaveChangesAsync(ct);
         }
 

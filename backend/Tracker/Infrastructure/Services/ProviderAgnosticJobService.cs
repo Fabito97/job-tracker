@@ -89,7 +89,7 @@ public sealed partial class ProviderAgnosticJobService(
         return text;
     }
 
-    public async Task<TailoredResume?> WriteTailoredResumeAsync(Job job, CancellationToken ct)
+    public async Task<TailoredResume?> WriteTailoredResumeAsync(Job job, string? mode = null, CancellationToken ct = default)
     {
         var resumeText = await resumes.GetResumeTextAsync(job.ResumeVersion, ct);
         var confirmedSkillsText = job.ConfirmedSkills.Count > 0
@@ -99,15 +99,33 @@ public sealed partial class ProviderAgnosticJobService(
             ? job.TailoringNotes
             : "None provided.";
 
-        var prompt = prompts.Get("TailoredResumePrompt").Render(
-            ("CV", resumeText),
-            ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
-            ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords)),
-            ("CONFIRMED_SKILLS", confirmedSkillsText),
-            ("USER_NOTES", notesText)
-        );
+        var isRefining = job.Tailored is not null && !string.Equals(mode, "fresh", StringComparison.OrdinalIgnoreCase);
 
-        logger.LogInformation("Generating tailored resume for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);
+        string prompt;
+        if (isRefining)
+        {
+            var currentDraftJson = JsonSerializer.Serialize(job.Tailored, JsonOptions);
+            prompt = prompts.Get("RefineTailoredResumePrompt").Render(
+                ("CV", resumeText),
+                ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
+                ("CURRENT_DRAFT", currentDraftJson),
+                ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords)),
+                ("CONFIRMED_SKILLS", confirmedSkillsText),
+                ("USER_NOTES", notesText)
+            );
+            logger.LogInformation("Refining existing tailored resume draft for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);
+        }
+        else
+        {
+            prompt = prompts.Get("TailoredResumePrompt").Render(
+                ("CV", resumeText),
+                ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
+                ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords)),
+                ("CONFIRMED_SKILLS", confirmedSkillsText),
+                ("USER_NOTES", notesText)
+            );
+            logger.LogInformation("Generating fresh tailored resume for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);
+        }
 
         var response = await aiClient.GetResponseAsync<TailoredResume>(
             prompt,

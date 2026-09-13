@@ -57,7 +57,9 @@ export function useTailoredResume() {
   return useMutation({
     mutationFn: (arg: number | TailorResumePayload) => {
       const id = typeof arg === 'number' ? arg : arg.id
-      const payload = typeof arg === 'number' ? { regenerate: true } : { regenerate: arg.regenerate ?? true, confirmedSkills: arg.confirmedSkills, notes: arg.notes }
+      const payload = typeof arg === 'number'
+        ? { regenerate: true }
+        : { regenerate: arg.regenerate ?? true, confirmedSkills: arg.confirmedSkills, notes: arg.notes, mode: arg.mode }
       return api<JobDetail>(`/api/jobs/${id}/resume`, { method: 'POST', body: JSON.stringify(payload) })
     },
     onSuccess: (job) => queryClient.setQueryData([QUERY_KEYS.job, job.id], job),
