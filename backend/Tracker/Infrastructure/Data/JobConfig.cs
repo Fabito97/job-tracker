@@ -21,6 +21,7 @@ public class JobConfig : IEntityTypeConfiguration<Job>
         builder.Property(j => j.JobBoard).HasMaxLength(64);
         builder.Property(j => j.ResumeVersion).HasMaxLength(32);
         builder.Property(j => j.Status).HasConversion<string>().HasMaxLength(16);
+        builder.Property(j => j.TailoringNotes).HasMaxLength(4000);
 
         // Nothing filters or sorts on the analysis, so it lives in one JSON column
         // instead of extra tables for the two keyword lists.

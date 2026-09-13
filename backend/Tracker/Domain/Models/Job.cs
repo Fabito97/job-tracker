@@ -29,4 +29,8 @@ public class Job
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? AppliedAt { get; set; }
     public DateTimeOffset? InterviewAt { get; set; }
+
+    // User tailoring directives & confirmed skills
+    public List<string> ConfirmedSkills { get; set; } = [];
+    public string? TailoringNotes { get; set; }
 }

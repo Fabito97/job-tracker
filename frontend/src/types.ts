@@ -43,6 +43,8 @@ export interface JobDetail extends JobListItem {
   analysis: JobAnalysis
   coverLetter: string | null
   tailored: TailoredResume | null
+  confirmedSkills?: string[]
+  tailoringNotes?: string | null
 }
 
 /** The whole tracking state is sent on every save, so a cleared date is cleared on the server too. */
@@ -51,6 +53,19 @@ export interface TrackingUpdate {
   status: JobStatus
   appliedOn: string | null
   interviewOn: string | null
+}
+
+export interface DirectivesUpdate {
+  id: number
+  confirmedSkills?: string[]
+  tailoringNotes?: string | null
+}
+
+export interface TailorResumePayload {
+  id: number
+  regenerate?: boolean
+  confirmedSkills?: string[]
+  notes?: string | null
 }
 
 export interface Paged<T> {

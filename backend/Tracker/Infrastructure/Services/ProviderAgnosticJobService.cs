@@ -65,9 +65,19 @@ public sealed partial class ProviderAgnosticJobService(
 
     public async Task<string> WriteCoverLetterAsync(Job job, CancellationToken ct)
     {
+        var resumeText = await resumes.GetResumeTextAsync(job.ResumeVersion, ct);
+        var confirmedSkillsText = job.ConfirmedSkills.Count > 0
+            ? string.Join(", ", job.ConfirmedSkills)
+            : "None specified.";
+        var notesText = !string.IsNullOrWhiteSpace(job.TailoringNotes)
+            ? job.TailoringNotes
+            : "None provided.";
+
         var prompt = prompts.Get("CoverLetterPrompt").Render(
-            ("CV", ResumeFor(job)),
-            ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description))
+            ("CV", resumeText),
+            ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
+            ("CONFIRMED_SKILLS", confirmedSkillsText),
+            ("USER_NOTES", notesText)
         );
 
         logger.LogInformation("Generating cover letter for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);
@@ -82,10 +92,19 @@ public sealed partial class ProviderAgnosticJobService(
     public async Task<TailoredResume?> WriteTailoredResumeAsync(Job job, CancellationToken ct)
     {
         var resumeText = await resumes.GetResumeTextAsync(job.ResumeVersion, ct);
+        var confirmedSkillsText = job.ConfirmedSkills.Count > 0
+            ? string.Join(", ", job.ConfirmedSkills)
+            : "None specified.";
+        var notesText = !string.IsNullOrWhiteSpace(job.TailoringNotes)
+            ? job.TailoringNotes
+            : "None provided.";
+
         var prompt = prompts.Get("TailoredResumePrompt").Render(
             ("CV", resumeText),
             ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
-            ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords))
+            ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords)),
+            ("CONFIRMED_SKILLS", confirmedSkillsText),
+            ("USER_NOTES", notesText)
         );
 
         logger.LogInformation("Generating tailored resume for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);

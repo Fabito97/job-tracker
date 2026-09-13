@@ -56,6 +56,11 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# Runtime settings and data
+**/Infrastructure/Data/settings.json
+**/Infrastructure/Data/Jobs/
+**/Infrastructure/Data/Resumes/
+
 # ==========================================
 # Certificates / Keys
 # ==========================================

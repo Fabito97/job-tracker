@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { QUERY_KEYS } from '@/lib/constants'
-import type { ImportResult, JobDetail, TrackingUpdate } from '@/types'
+import type { DirectivesUpdate, ImportResult, JobDetail, TailorResumePayload, TrackingUpdate } from '@/types'
 
 /** Anything that changes the stored jobs invalidates the grid, the cards and the board list. */
 function useRefreshJobs() {
@@ -37,9 +37,32 @@ export function useUpdateTracking() {
   })
 }
 
+export function useUpdateDirectives() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...directives }: DirectivesUpdate) =>
+      api<JobDetail>(`/api/jobs/${id}/directives`, { method: 'PATCH', body: JSON.stringify(directives) }),
+    onSuccess: (job) => {
+      queryClient.setQueryData([QUERY_KEYS.job, job.id], job)
+    },
+  })
+}
+
 export const useCoverLetter = () => useGenerator('cover-letter')
 
-export const useTailoredResume = () => useGenerator('resume')
+export function useTailoredResume() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (arg: number | TailorResumePayload) => {
+      const id = typeof arg === 'number' ? arg : arg.id
+      const payload = typeof arg === 'number' ? { regenerate: true } : { regenerate: arg.regenerate ?? true, confirmedSkills: arg.confirmedSkills, notes: arg.notes }
+      return api<JobDetail>(`/api/jobs/${id}/resume`, { method: 'POST', body: JSON.stringify(payload) })
+    },
+    onSuccess: (job) => queryClient.setQueryData([QUERY_KEYS.job, job.id], job),
+  })
+}
 
 /** Both generators write onto the job and answer with it, so the cached detail is simply replaced. */
 function useGenerator(resource: string) {

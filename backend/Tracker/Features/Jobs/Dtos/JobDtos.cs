@@ -77,11 +77,23 @@ public record JobDetail(
     DateTimeOffset? InterviewAt,
     JobAnalysis Analysis,
     string? CoverLetter,
-    TailoredResume? Tailored);
+    TailoredResume? Tailored,
+    IReadOnlyList<string>? ConfirmedSkills = null,
+    string? TailoringNotes = null);
 
 /// <summary>
 /// The whole tracking state of a job. The dates are sent on every call, so clearing one in the UI clears it here.
 /// </summary>
 public record UpdateTrackingRequest(JobStatus Status, DateOnly? AppliedOn, DateOnly? InterviewOn);
+
+/// <summary>
+/// Confirmed skills from missing skills list and user custom steering directives.
+/// </summary>
+public record UpdateJobDirectivesRequest(List<string>? ConfirmedSkills, string? TailoringNotes);
+
+/// <summary>
+/// Optional directives when triggering tailored resume generation.
+/// </summary>
+public record TailorResumeRequest(bool? Regenerate = null, List<string>? ConfirmedSkills = null, string? Notes = null);
 
 public record JobMetrics(int Total, int Pending, int Applied, int Interviewing, int HighMatch, int ActionNeeded, int AverageScore);

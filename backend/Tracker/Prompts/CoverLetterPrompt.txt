@@ -6,7 +6,14 @@ CANDIDATE RESUME:
 JOB POSTING:
 {{JOB}}
 
+CANDIDATE CONFIRMED SKILLS (THE CANDIDATE EXPLICITLY HAS AND WANTS INCLUDED):
+{{CONFIRMED_SKILLS}}
+
+USER GUIDANCE & NOTES:
+{{USER_NOTES}}
+
 Write a cover letter of three or four short paragraphs addressed to the hiring team.
 Open with the role and why the candidate is a fit, use concrete achievements that already appear in the resume,
+incorporate the candidate's confirmed skills and align with any user guidance provided,
 and close with a brief call to action. Do not fabricate accomplishments, employers, or dates.
 Avoid the em dash. Return the letter as plain text with no heading, no placeholders, and no commentary.

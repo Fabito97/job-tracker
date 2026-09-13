@@ -9,18 +9,24 @@ JOB POSTING:
 KEYWORDS THE POSTING WANTS THAT THE RESUME IS MISSING:
 {{MISSING_KEYWORDS}}
 
+CANDIDATE CONFIRMED SKILLS (THE CANDIDATE EXPLICITLY HAS AND WANTS INCLUDED):
+{{CONFIRMED_SKILLS}}
+
+USER TAILORING DIRECTIVES & INSTRUCTIONS:
+{{USER_NOTES}}
+
 TASKS
 1. Rewrite the core competencies to match the posting. Fold in the missing keywords above that are genuinely
-   supported by the candidate's experience, and drop competencies the posting does not care about.
+   supported by the candidate's experience, as well as the confirmed skills the candidate provided. Drop competencies the posting does not care about.
 2. Rewrite the technical skills block, keeping the resume's own grouping. Return one entry per group,
-   formatted as "Group: item, item, item". Add related technologies named in the posting only when the
-   resume already shows evidence of them, and remove groups the posting has no use for.
+   formatted as "Group: item, item, item". Incorporate confirmed skills into the appropriate skill groups. Remove groups the posting has no use for.
 3. Rewrite the experience bullets for every role in the resume, keeping the same employers, titles, and order.
    Lead with action verbs, keep them ATS friendly, and surface the skills this posting asks for.
+4. If USER TAILORING DIRECTIVES & INSTRUCTIONS are provided, follow their guidance on what project themes, technologies, or achievements to highlight or de-emphasize.
 
 RULES
-Use only facts already in the resume. Do not invent accomplishments, employers, dates, metrics, or technologies.
-Keep every metric exactly as the resume states it. Avoid the em dash.
+Use only facts already in the resume plus the explicitly confirmed skills provided by the candidate. Do not invent fictional employers, dates, or fake metrics.
+Keep every metric realistic and grounded in the resume. Avoid the em dash.
 
 OUTPUT
 Return ONLY a JSON object in this exact shape. No markdown, no text outside the JSON.

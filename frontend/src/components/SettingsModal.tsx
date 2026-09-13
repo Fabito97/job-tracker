@@ -414,7 +414,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                         ? 'http://localhost:11434/v1'
                         : 'Leave blank for official provider endpoint'
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                  className="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
                 />
               </div>
             </div>

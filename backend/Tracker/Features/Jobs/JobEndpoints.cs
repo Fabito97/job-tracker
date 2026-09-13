@@ -19,6 +19,7 @@ public static class JobEndpoints
         jobs.MapGet("/boards", GetBoardsAsync);
         jobs.MapGet("/{id:long}", GetJobAsync);
         jobs.MapPatch("/{id:long}/status", UpdateStatusAsync);
+        jobs.MapPatch("/{id:long}/directives", UpdateDirectivesAsync);
         jobs.MapPost("/{id:long}/cover-letter", GenerateCoverLetterAsync);
         jobs.MapPost("/{id:long}/resume", GenerateResumeAsync);
 
@@ -121,6 +122,29 @@ public static class JobEndpoints
         return TypedResults.Ok(ToDetail(job));
     }
 
+    private static async Task<Results<Ok<JobDetail>, NotFound>> UpdateDirectivesAsync(
+        long id,
+        UpdateJobDirectivesRequest request,
+        [FromServices] TrackerDbContext db,
+        CancellationToken ct)
+    {
+        var job = await db.Jobs.FirstOrDefaultAsync(j => j.Id == id, ct);
+        if (job is null) return TypedResults.NotFound();
+
+        if (request.ConfirmedSkills is not null)
+        {
+            job.ConfirmedSkills = request.ConfirmedSkills;
+        }
+
+        if (request.TailoringNotes is not null)
+        {
+            job.TailoringNotes = request.TailoringNotes;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Ok(ToDetail(job));
+    }
+
     private static Task<Results<Ok<JobDetail>, NotFound>> GenerateCoverLetterAsync(
         long id,
         bool? regenerate,
@@ -131,15 +155,35 @@ public static class JobEndpoints
             job => string.IsNullOrWhiteSpace(job.CoverLetter) || regenerate is true,
             async job => job.CoverLetter = await ai.WriteCoverLetterAsync(job, ct));
 
-    private static Task<Results<Ok<JobDetail>, NotFound>> GenerateResumeAsync(
+    private static async Task<Results<Ok<JobDetail>, NotFound>> GenerateResumeAsync(
         long id,
-        bool? regenerate,
+        TailorResumeRequest? request,
         [FromServices] TrackerDbContext db,
         [FromServices] IJobAiService ai,
-        CancellationToken ct) =>
-        GenerateAsync(id, db, ct,
-            job => job.Tailored is null || regenerate is true,
-            async job => job.Tailored = await ai.WriteTailoredResumeAsync(job, ct));
+        CancellationToken ct)
+    {
+        var job = await db.Jobs.FirstOrDefaultAsync(j => j.Id == id, ct);
+        if (job is null) return TypedResults.NotFound();
+
+        if (request?.ConfirmedSkills is not null)
+        {
+            job.ConfirmedSkills = request.ConfirmedSkills;
+        }
+
+        if (request?.Notes is not null)
+        {
+            job.TailoringNotes = request.Notes;
+        }
+
+        var shouldRegenerate = job.Tailored is null || request?.Regenerate is true;
+        if (shouldRegenerate)
+        {
+            job.Tailored = await ai.WriteTailoredResumeAsync(job, ct);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return TypedResults.Ok(ToDetail(job));
+    }
 
     /// <summary>Writes generated content onto a job once, then serves it from the database until asked to redo it.</summary>
     private static async Task<Results<Ok<JobDetail>, NotFound>> GenerateAsync(
@@ -167,5 +211,6 @@ public static class JobEndpoints
     private static JobDetail ToDetail(Job job) => new(
         job.Id, job.JobTitle, job.Company, job.Location, job.JobBoard, job.JobUrl, job.Description,
         job.MatchScore, job.ResumeVersion, job.Status, job.PostedDate, job.CreatedAt, job.AppliedAt,
-        job.InterviewAt, job.Analysis, job.CoverLetter, job.Tailored);
+        job.InterviewAt, job.Analysis, job.CoverLetter, job.Tailored,
+        job.ConfirmedSkills, job.TailoringNotes);
 }
