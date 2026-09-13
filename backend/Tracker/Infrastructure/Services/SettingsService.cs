@@ -124,9 +124,10 @@ public sealed class SettingsService : ISettingsService
                     {
                         if (_state.Providers.TryGetValue(k, out var existing))
                         {
+                            var resolvedKey = !string.IsNullOrWhiteSpace(v.ApiKey) ? v.ApiKey : existing.ApiKey;
                             _state.Providers[k] = new(
                                 !string.IsNullOrWhiteSpace(v.Model) ? v.Model : existing.Model,
-                                !string.IsNullOrWhiteSpace(v.ApiKey) ? v.ApiKey : existing.ApiKey,
+                                resolvedKey,
                                 v.BaseUrl ?? existing.BaseUrl);
                         }
                         else
@@ -162,13 +163,36 @@ public sealed class SettingsService : ISettingsService
             var key = provCreds?.ApiKey ?? string.Empty;
             var maskedKey = MaskKey(key);
 
+            var providerStatuses = new Dictionary<string, ProviderStatusDto>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in SupportedProviders)
+            {
+                if (_state.Providers.TryGetValue(p, out var creds))
+                {
+                    var pKey = creds.ApiKey ?? string.Empty;
+                    providerStatuses[p] = new ProviderStatusDto(
+                        Model: creds.Model,
+                        MaskedApiKey: MaskKey(pKey),
+                        HasApiKey: !string.IsNullOrWhiteSpace(pKey),
+                        BaseUrl: creds.BaseUrl);
+                }
+                else
+                {
+                    providerStatuses[p] = new ProviderStatusDto(
+                        Model: string.Empty,
+                        MaskedApiKey: string.Empty,
+                        HasApiKey: false,
+                        BaseUrl: null);
+                }
+            }
+
             return new AppSettingsDto(
                 Ai: new AiSettingsDto(
                     Provider: provider,
                     Model: _state.ActiveModel,
                     MaskedApiKey: maskedKey,
                     HasApiKey: !string.IsNullOrWhiteSpace(key),
-                    BaseUrl: provCreds?.BaseUrl),
+                    BaseUrl: provCreds?.BaseUrl,
+                    Providers: providerStatuses),
                 Criteria: new CriteriaSettingsDto(
                     MinScore: _state.Criteria.MinScore,
                     RequiresSponsorship: _state.Criteria.RequiresSponsorship,

@@ -1,11 +1,18 @@
 namespace Tracker.Features.Settings;
 
+public record ProviderStatusDto(
+    string Model,
+    string MaskedApiKey,
+    bool HasApiKey,
+    string? BaseUrl);
+
 public record AiSettingsDto(
     string Provider,
     string Model,
     string MaskedApiKey,
     bool HasApiKey,
-    string? BaseUrl);
+    string? BaseUrl,
+    IReadOnlyDictionary<string, ProviderStatusDto> Providers);
 
 public record CriteriaSettingsDto(
     int MinScore,

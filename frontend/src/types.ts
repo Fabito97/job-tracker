@@ -156,12 +156,20 @@ export interface JobFilters {
   to?: string
 }
 
+export interface ProviderStatus {
+  model: string
+  maskedApiKey: string
+  hasApiKey: boolean
+  baseUrl: string | null
+}
+
 export interface AiSettings {
   provider: string
   model: string
   maskedApiKey: string
   hasApiKey: boolean
   baseUrl: string | null
+  providers?: Record<string, ProviderStatus>
 }
 
 export interface CriteriaSettings {
