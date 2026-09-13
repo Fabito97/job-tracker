@@ -133,6 +133,8 @@ public sealed class JobImportService(
                 Reason = analysis.Reason ?? string.Empty,
                 TailoredSummary = analysis.TailoredSummary ?? string.Empty,
                 SponsorshipNote = analysis.SponsorshipNote ?? string.Empty,
+                LocationEligibility = analysis.LocationEligibility ?? "Unknown",
+                LocationNote = analysis.LocationNote ?? string.Empty,
                 MatchingStrengths = analysis.MatchingStrengths ?? [],
                 MissingKeywords = analysis.MissingKeywords ?? []
             }

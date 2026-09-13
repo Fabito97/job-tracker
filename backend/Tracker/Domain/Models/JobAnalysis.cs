@@ -8,6 +8,8 @@ public class JobAnalysis
     public string Reason { get; set; } = string.Empty;
     public string TailoredSummary { get; set; } = string.Empty;
     public string SponsorshipNote { get; set; } = string.Empty;
+    public string LocationEligibility { get; set; } = "Unknown";
+    public string LocationNote { get; set; } = string.Empty;
     public List<string> MatchingStrengths { get; set; } = [];
     public List<string> MissingKeywords { get; set; } = [];
 }

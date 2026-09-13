@@ -29,6 +29,8 @@ public class JobAnalysisResult
     public string? Reason { get; set; }
     public string? TailoredSummary { get; set; }
     public string? SponsorshipNote { get; set; }
+    public string? LocationEligibility { get; set; }
+    public string? LocationNote { get; set; }
     public List<string>? MatchingStrengths { get; set; }
     public List<string>? MissingKeywords { get; set; }
 }

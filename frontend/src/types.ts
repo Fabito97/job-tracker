@@ -21,6 +21,8 @@ export interface JobAnalysis {
   reason: string
   tailoredSummary: string
   sponsorshipNote: string
+  locationEligibility?: string
+  locationNote?: string
   matchingStrengths: string[]
   missingKeywords: string[]
 }
@@ -178,6 +180,14 @@ export interface CriteriaSettings {
   requireClearanceCheck: boolean
   targetLocation: string | null
   keepRejectedJobs: boolean
+  professionalHeadline?: string | null
+  targetSeniority?: string | null
+  currentLocation?: string | null
+  targetLocations?: string[] | null
+  openToRelocation?: boolean | null
+  workAuthorization?: string | null
+  hasSecurityClearance?: boolean | null
+  customDealbreakers?: string[] | null
 }
 
 export interface BlacklistSettings {
@@ -205,6 +215,14 @@ export interface UpdateSettingsRequest {
     requireClearanceCheck?: boolean
     targetLocation?: string | null
     keepRejectedJobs?: boolean
+    professionalHeadline?: string | null
+    targetSeniority?: string | null
+    currentLocation?: string | null
+    targetLocations?: string[] | null
+    openToRelocation?: boolean | null
+    workAuthorization?: string | null
+    hasSecurityClearance?: boolean | null
+    customDealbreakers?: string[] | null
   }
   blacklist?: {
     enabled?: boolean

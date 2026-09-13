@@ -198,7 +198,15 @@ public sealed class SettingsService : ISettingsService
                     RequiresSponsorship: _state.Criteria.RequiresSponsorship,
                     RequireClearanceCheck: _state.Criteria.RequireClearanceCheck,
                     TargetLocation: _state.Criteria.TargetLocation,
-                    KeepRejectedJobs: _state.Criteria.KeepRejectedJobs),
+                    KeepRejectedJobs: _state.Criteria.KeepRejectedJobs,
+                    ProfessionalHeadline: _state.Criteria.ProfessionalHeadline,
+                    TargetSeniority: _state.Criteria.TargetSeniority,
+                    CurrentLocation: _state.Criteria.CurrentLocation,
+                    TargetLocations: _state.Criteria.TargetLocations,
+                    OpenToRelocation: _state.Criteria.OpenToRelocation,
+                    WorkAuthorization: _state.Criteria.WorkAuthorization,
+                    HasSecurityClearance: _state.Criteria.HasSecurityClearance,
+                    CustomDealbreakers: _state.Criteria.CustomDealbreakers),
                 Blacklist: new BlacklistSettingsDto(
                     Enabled: _cachedBlacklist.Enabled,
                     Companies: _cachedBlacklist.Companies),
@@ -266,7 +274,15 @@ public sealed class SettingsService : ISettingsService
                     RequiresSponsorship = cr.RequiresSponsorship ?? _state.Criteria.RequiresSponsorship,
                     RequireClearanceCheck = cr.RequireClearanceCheck ?? _state.Criteria.RequireClearanceCheck,
                     TargetLocation = cr.TargetLocation ?? _state.Criteria.TargetLocation,
-                    KeepRejectedJobs = cr.KeepRejectedJobs ?? _state.Criteria.KeepRejectedJobs
+                    KeepRejectedJobs = cr.KeepRejectedJobs ?? _state.Criteria.KeepRejectedJobs,
+                    ProfessionalHeadline = !string.IsNullOrWhiteSpace(cr.ProfessionalHeadline) ? cr.ProfessionalHeadline.Trim() : _state.Criteria.ProfessionalHeadline,
+                    TargetSeniority = !string.IsNullOrWhiteSpace(cr.TargetSeniority) ? cr.TargetSeniority.Trim() : _state.Criteria.TargetSeniority,
+                    CurrentLocation = !string.IsNullOrWhiteSpace(cr.CurrentLocation) ? cr.CurrentLocation.Trim() : _state.Criteria.CurrentLocation,
+                    TargetLocations = cr.TargetLocations is { Count: > 0 } ? cr.TargetLocations : _state.Criteria.TargetLocations,
+                    OpenToRelocation = cr.OpenToRelocation ?? _state.Criteria.OpenToRelocation,
+                    WorkAuthorization = !string.IsNullOrWhiteSpace(cr.WorkAuthorization) ? cr.WorkAuthorization.Trim() : _state.Criteria.WorkAuthorization,
+                    HasSecurityClearance = cr.HasSecurityClearance ?? _state.Criteria.HasSecurityClearance,
+                    CustomDealbreakers = cr.CustomDealbreakers ?? _state.Criteria.CustomDealbreakers
                 };
             }
 

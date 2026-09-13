@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
 import {
   Ban,
+  Briefcase,
   Check,
   CheckCircle2,
   Cpu,
+  Globe,
   KeyRound,
   Loader,
+  MapPin,
   Plus,
   Search,
+  ShieldAlert,
   SlidersHorizontal,
   Trash2,
+  User,
   X,
 } from 'lucide-react'
 import { Button } from './Button'
@@ -43,6 +48,18 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [targetLocation, setTargetLocation] = useState('')
   const [keepRejectedJobs, setKeepRejectedJobs] = useState(true)
 
+  // Candidate Profile State
+  const [professionalHeadline, setProfessionalHeadline] = useState('Software Engineer')
+  const [targetSeniority, setTargetSeniority] = useState('Senior')
+  const [currentLocation, setCurrentLocation] = useState('Nigeria')
+  const [targetLocations, setTargetLocations] = useState<string[]>(['Remote', 'Worldwide', 'United States', 'United Kingdom', 'Europe'])
+  const [newTargetLocationInput, setNewTargetLocationInput] = useState('')
+  const [openToRelocation, setOpenToRelocation] = useState(true)
+  const [workAuthorization, setWorkAuthorization] = useState('Needs Visa Sponsorship')
+  const [hasSecurityClearance, setHasSecurityClearance] = useState(false)
+  const [customDealbreakers, setCustomDealbreakers] = useState<string[]>([])
+  const [newDealbreakerInput, setNewDealbreakerInput] = useState('')
+
   // Blacklist Form State
   const [blacklistEnabled, setBlacklistEnabled] = useState(true)
   const [blacklistCompanies, setBlacklistCompanies] = useState<string[]>([])
@@ -64,6 +81,31 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       setRequireClearanceCheck(settings.data.criteria.requireClearanceCheck)
       setTargetLocation(settings.data.criteria.targetLocation ?? '')
       setKeepRejectedJobs(settings.data.criteria.keepRejectedJobs)
+
+      if (settings.data.criteria.professionalHeadline !== undefined) {
+        setProfessionalHeadline(settings.data.criteria.professionalHeadline ?? '')
+      }
+      if (settings.data.criteria.targetSeniority !== undefined) {
+        setTargetSeniority(settings.data.criteria.targetSeniority ?? '')
+      }
+      if (settings.data.criteria.currentLocation !== undefined) {
+        setCurrentLocation(settings.data.criteria.currentLocation ?? '')
+      }
+      if (settings.data.criteria.targetLocations) {
+        setTargetLocations(settings.data.criteria.targetLocations)
+      }
+      if (settings.data.criteria.openToRelocation !== undefined && settings.data.criteria.openToRelocation !== null) {
+        setOpenToRelocation(settings.data.criteria.openToRelocation)
+      }
+      if (settings.data.criteria.workAuthorization !== undefined) {
+        setWorkAuthorization(settings.data.criteria.workAuthorization ?? '')
+      }
+      if (settings.data.criteria.hasSecurityClearance !== undefined && settings.data.criteria.hasSecurityClearance !== null) {
+        setHasSecurityClearance(settings.data.criteria.hasSecurityClearance)
+      }
+      if (settings.data.criteria.customDealbreakers) {
+        setCustomDealbreakers(settings.data.criteria.customDealbreakers)
+      }
 
       if (settings.data.blacklist) {
         setBlacklistEnabled(settings.data.blacklist.enabled)
@@ -124,6 +166,34 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     c.toLowerCase().includes(blacklistSearch.trim().toLowerCase()),
   )
 
+  const handleAddTargetLocation = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const trimmed = newTargetLocationInput.trim()
+    if (!trimmed) return
+    if (!targetLocations.some((loc) => loc.toLowerCase() === trimmed.toLowerCase())) {
+      setTargetLocations((prev) => [...prev, trimmed])
+    }
+    setNewTargetLocationInput('')
+  }
+
+  const handleRemoveTargetLocation = (locToRemove: string) => {
+    setTargetLocations((prev) => prev.filter((loc) => loc !== locToRemove))
+  }
+
+  const handleAddDealbreaker = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const trimmed = newDealbreakerInput.trim()
+    if (!trimmed) return
+    if (!customDealbreakers.some((db) => db.toLowerCase() === trimmed.toLowerCase())) {
+      setCustomDealbreakers((prev) => [...prev, trimmed])
+    }
+    setNewDealbreakerInput('')
+  }
+
+  const handleRemoveDealbreaker = (dbToRemove: string) => {
+    setCustomDealbreakers((prev) => prev.filter((db) => db !== dbToRemove))
+  }
+
   const handleSave = async () => {
     const payload: UpdateSettingsRequest = {
       ai: {
@@ -138,6 +208,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         requireClearanceCheck,
         targetLocation: targetLocation.trim().length > 0 ? targetLocation.trim() : null,
         keepRejectedJobs,
+        professionalHeadline: professionalHeadline.trim().length > 0 ? professionalHeadline.trim() : null,
+        targetSeniority: targetSeniority.trim().length > 0 ? targetSeniority.trim() : null,
+        currentLocation: currentLocation.trim().length > 0 ? currentLocation.trim() : null,
+        targetLocations,
+        openToRelocation,
+        workAuthorization: workAuthorization.trim().length > 0 ? workAuthorization.trim() : null,
+        hasSecurityClearance,
+        customDealbreakers,
       },
       blacklist: {
         enabled: blacklistEnabled,
@@ -397,25 +475,224 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 />
               </div>
 
-              {/* Target Location */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1.5">
-                  Target Location Constraint
-                </label>
-                <input
-                  type="text"
-                  value={targetLocation}
-                  onChange={(e) => setTargetLocation(e.target.value)}
-                  placeholder="e.g. United States or leave blank for worldwide/unrestricted"
-                  className="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty if you are open to remote roles worldwide or local to multiple areas.
+              {/* Candidate Profile & Location Eligibility */}
+              <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4.5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white">
+                    <User size={15} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Candidate Profile & Location Eligibility</h3>
+                    <p className="text-xs text-gray-500">
+                      The AI checks whether postings (especially remote/international) allow candidates from your physical location.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1">
+                      Professional Headline / Role
+                    </label>
+                    <div className="relative">
+                      <Briefcase size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={professionalHeadline}
+                        onChange={(e) => setProfessionalHeadline(e.target.value)}
+                        placeholder="e.g. Senior Full Stack Engineer"
+                        className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1">
+                      Target Seniority Level
+                    </label>
+                    <input
+                      type="text"
+                      value={targetSeniority}
+                      onChange={(e) => setTargetSeniority(e.target.value)}
+                      placeholder="e.g. Senior, Lead, Staff, Mid-Level"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1">
+                      Current Physical Residence
+                    </label>
+                    <div className="relative">
+                      <MapPin size={14} className="absolute left-3 top-2.5 text-red-500" />
+                      <input
+                        type="text"
+                        value={currentLocation}
+                        onChange={(e) => setCurrentLocation(e.target.value)}
+                        placeholder="e.g. Nigeria, Canada, United Kingdom"
+                        className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Where you physically reside right now for payroll & tax clearance.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1">
+                      Work Authorization Status
+                    </label>
+                    <select
+                      value={workAuthorization}
+                      onChange={(e) => setWorkAuthorization(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="Citizen / Permanent Resident">Citizen / Permanent Resident</option>
+                      <option value="Authorized to Work (No Sponsorship Needed)">Authorized to Work (No Sponsorship Needed)</option>
+                      <option value="Needs Visa Sponsorship">Needs Visa Sponsorship</option>
+                      <option value="Contract / B2B Contractor">Contract / B2B Contractor</option>
+                    </select>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Helps the AI evaluate sponsorship eligibility automatically.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Target Locations Tag List */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+                      Target Job Locations & Markets
+                    </label>
+                    <span className="text-[11px] text-gray-500">{targetLocations.length} locations</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {targetLocations.map((loc) => (
+                      <span
+                        key={loc}
+                        className="inline-flex items-center gap-1 rounded-full bg-blue-100/80 border border-blue-200 px-2.5 py-0.5 text-xs font-medium text-blue-900"
+                      >
+                        <Globe size={11} className="text-blue-600" />
+                        {loc}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTargetLocation(loc)}
+                          className="ml-0.5 rounded-full p-0.5 text-blue-500 hover:bg-blue-200 hover:text-blue-800"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newTargetLocationInput}
+                      onChange={(e) => setNewTargetLocationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddTargetLocation()
+                        }
+                      }}
+                      placeholder="Add target location (e.g. Remote, United States, Europe, Worldwide)"
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddTargetLocation()}
+                      className="inline-flex items-center gap-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 text-xs font-medium transition-colors"
+                    >
+                      <Plus size={13} /> Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Relocation & Clearance Flags */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={openToRelocation}
+                      onChange={(e) => setOpenToRelocation(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span>Open to Relocation</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasSecurityClearance}
+                      onChange={(e) => setHasSecurityClearance(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span>Hold Active Government Security Clearance</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Custom Dealbreakers */}
+              <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert size={16} className="text-amber-600" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-700">Custom Dealbreakers</span>
+                  </div>
+                  <span className="text-[11px] text-gray-500">{customDealbreakers.length} active rules</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Specify strict requirements that must disqualify a job (e.g. &quot;Must not require on-call shifts&quot;, &quot;No unpaid trials&quot;).
                 </p>
+
+                {customDealbreakers.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {customDealbreakers.map((db) => (
+                      <span
+                        key={db}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs text-amber-900"
+                      >
+                        {db}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDealbreaker(db)}
+                          className="ml-0.5 rounded-full p-0.5 text-amber-600 hover:bg-amber-200 hover:text-amber-800"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDealbreakerInput}
+                    onChange={(e) => setNewDealbreakerInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddDealbreaker()
+                      }
+                    }}
+                    placeholder="Add custom dealbreaker rule..."
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddDealbreaker()}
+                    className="inline-flex items-center gap-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 text-xs font-medium transition-colors"
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
               </div>
 
               {/* Toggles */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3.5 cursor-pointer hover:bg-gray-50 transition-colors">
                   <input
                     type="checkbox"
@@ -424,9 +701,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                   <div>
-                    <span className="text-sm font-semibold text-gray-900">Require Visa Sponsorship (F-1 / H-1B)</span>
+                    <span className="text-sm font-semibold text-gray-900">Strictly Require Visa Sponsorship (H-1B / UK Tier 2)</span>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      When enabled, jobs that explicitly state &quot;No visa sponsorship&quot; will be rejected by the AI. When disabled, visa questions are completely omitted from prompts.
+                      When enabled, jobs that explicitly state &quot;No visa sponsorship&quot; or &quot;US Citizens Only&quot; will be disqualified.
                     </p>
                   </div>
                 </label>

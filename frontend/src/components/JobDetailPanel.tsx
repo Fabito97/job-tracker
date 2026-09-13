@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Check, ChevronDown, Edit3, ExternalLink, FileText, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
+import { Check, ChevronDown, Edit3, ExternalLink, FileText, MapPin, Plus, RotateCcw, Sparkles, Trash2, X } from 'lucide-react'
 import { Button } from './Button'
 import { CopyButton } from './CopyButton'
 import { StatusBadge } from './StatusBadge'
@@ -380,6 +380,37 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
                     </div>
                   </Section>
                 </>
+              )}
+
+              {/* Location Eligibility */}
+              {(job.analysis.locationEligibility || job.analysis.locationNote) && (
+                <Section title="Location Eligibility">
+                  <div className="space-y-2">
+                    {job.analysis.locationEligibility && (
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                            job.analysis.locationEligibility.toLowerCase().includes('eligible') &&
+                              !job.analysis.locationEligibility.toLowerCase().includes('ineligible')
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : job.analysis.locationEligibility.toLowerCase().includes('ineligible')
+                                ? 'bg-red-100 text-red-800 border border-red-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200',
+                          )}
+                        >
+                          <MapPin size={12} />
+                          {job.analysis.locationEligibility}
+                        </span>
+                      </div>
+                    )}
+                    {job.analysis.locationNote && (
+                      <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 border border-gray-100 rounded-lg p-2.5">
+                        {job.analysis.locationNote}
+                      </p>
+                    )}
+                  </div>
+                </Section>
               )}
 
               <Section title="Sponsorship">

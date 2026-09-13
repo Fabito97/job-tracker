@@ -1,12 +1,7 @@
-namespace Tracker.Infrastructure;
+namespace Tracker.Domain.Models;
 
-public record CandidateCriteria
+public record CandidateProfile
 {
-    public int MinScore { get; init; } = 60;
-    public bool RequiresSponsorship { get; init; } = false;
-    public bool RequireClearanceCheck { get; init; } = false;
-    public string? TargetLocation { get; init; }
-    public bool KeepRejectedJobs { get; init; } = true;
     public string ProfessionalHeadline { get; init; } = "Software Engineer";
     public string TargetSeniority { get; init; } = "Senior";
     public string CurrentLocation { get; init; } = "Nigeria";
@@ -14,6 +9,8 @@ public record CandidateCriteria
     public bool OpenToRelocation { get; init; } = true;
     public string WorkAuthorization { get; init; } = "Needs Visa Sponsorship";
     public bool HasSecurityClearance { get; init; } = false;
+    public int MinScore { get; init; } = 60;
+    public bool KeepRejectedJobs { get; init; } = true;
     public IReadOnlyList<string> CustomDealbreakers { get; init; } = [];
 }
 

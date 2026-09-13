@@ -19,7 +19,15 @@ public record CriteriaSettingsDto(
     bool RequiresSponsorship,
     bool RequireClearanceCheck,
     string? TargetLocation,
-    bool KeepRejectedJobs);
+    bool KeepRejectedJobs,
+    string? ProfessionalHeadline = null,
+    string? TargetSeniority = null,
+    string? CurrentLocation = null,
+    IReadOnlyList<string>? TargetLocations = null,
+    bool? OpenToRelocation = null,
+    string? WorkAuthorization = null,
+    bool? HasSecurityClearance = null,
+    IReadOnlyList<string>? CustomDealbreakers = null);
 
 public record BlacklistSettingsDto(
     bool Enabled,
@@ -42,7 +50,15 @@ public record UpdateCriteriaRequest(
     bool? RequiresSponsorship = null,
     bool? RequireClearanceCheck = null,
     string? TargetLocation = null,
-    bool? KeepRejectedJobs = null);
+    bool? KeepRejectedJobs = null,
+    string? ProfessionalHeadline = null,
+    string? TargetSeniority = null,
+    string? CurrentLocation = null,
+    IReadOnlyList<string>? TargetLocations = null,
+    bool? OpenToRelocation = null,
+    string? WorkAuthorization = null,
+    bool? HasSecurityClearance = null,
+    IReadOnlyList<string>? CustomDealbreakers = null);
 
 public record UpdateBlacklistRequest(
     bool? Enabled = null,
