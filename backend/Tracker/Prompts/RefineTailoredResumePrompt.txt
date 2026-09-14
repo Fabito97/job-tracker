@@ -21,9 +21,10 @@ USER DIRECTIVES & CRITIQUE:
 
 TASKS
 1. Treat the CURRENT TAILORED DRAFT as your baseline. Preserve strong, well-tailored phrasing, bullet points, and competencies that the user did not criticize or ask to change.
-2. Incorporate any newly confirmed skills into the core competencies and technical skills groups where relevant.
-3. Apply targeted revisions to address the USER DIRECTIVES & CRITIQUE (e.g., highlighting specific projects, tweaking tone, re-emphasizing particular technologies or metrics).
-4. For any changes to work experience bullets, ground them strictly in the facts and metrics from the CANDIDATE BASE RESUME.
+2. Inspect the professional summary in the CURRENT TAILORED DRAFT (or initial summary). If the USER DIRECTIVES & CRITIQUE or newly confirmed skills do not conflict with or request changes to the summary, keep the existing summary intact. If directives ask for a different tone, new focus area, or specific highlights, adjust the summary accordingly. Return this as "summary".
+3. Incorporate any newly confirmed skills into the core competencies and technical skills groups where relevant.
+4. Apply targeted revisions to address the USER DIRECTIVES & CRITIQUE (e.g., highlighting specific projects, tweaking tone, re-emphasizing particular technologies or metrics).
+5. For any changes to work experience bullets, ground them strictly in the facts and metrics from the CANDIDATE BASE RESUME.
 
 RULES
 Do not invent fictional employers, dates, accomplishments, or fake metrics.
@@ -33,6 +34,7 @@ OUTPUT
 Return ONLY a JSON object in this exact shape. No markdown, no text outside the JSON.
 
 {
+  "summary": "Compelling 3 to 4 sentence professional summary aligned with the role and directives.",
   "coreCompetencies": ["..."],
   "technicalSkills": ["Languages: ...", "Frameworks: ..."],
   "experience": [

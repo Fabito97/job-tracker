@@ -102,6 +102,8 @@ public sealed partial class ProviderAgnosticJobService(
         var isRefining = job.Tailored is not null && !string.Equals(mode, "fresh", StringComparison.OrdinalIgnoreCase);
 
         string prompt;
+        var existingSummary = job.Tailored?.Summary ?? job.Analysis.TailoredSummary ?? string.Empty;
+
         if (isRefining)
         {
             var currentDraftJson = JsonSerializer.Serialize(job.Tailored, JsonOptions);
@@ -122,7 +124,8 @@ public sealed partial class ProviderAgnosticJobService(
                 ("JOB", Describe(job.JobTitle, job.Company, job.Location, job.Description)),
                 ("MISSING_KEYWORDS", string.Join(", ", job.Analysis.MissingKeywords)),
                 ("CONFIRMED_SKILLS", confirmedSkillsText),
-                ("USER_NOTES", notesText)
+                ("USER_NOTES", notesText),
+                ("INITIAL_SUMMARY", existingSummary)
             );
             logger.LogInformation("Generating fresh tailored resume for job #{Id} ('{JobTitle}' at '{Company}')...", job.Id, job.JobTitle, job.Company);
         }
@@ -139,6 +142,12 @@ public sealed partial class ProviderAgnosticJobService(
         if (result is null && !string.IsNullOrWhiteSpace(rawText))
         {
             result = TryExtractJson<TailoredResume>(rawText, $"Resume for job #{job.Id}");
+        }
+
+        if (result is not null && string.IsNullOrWhiteSpace(result.Summary))
+        {
+            // Fall back to existing summary if model didn't return one
+            result.Summary = existingSummary;
         }
 
         return result;

@@ -15,14 +15,18 @@ CANDIDATE CONFIRMED SKILLS (THE CANDIDATE EXPLICITLY HAS AND WANTS INCLUDED):
 USER TAILORING DIRECTIVES & INSTRUCTIONS:
 {{USER_NOTES}}
 
+INITIAL PROFESSIONAL SUMMARY:
+{{INITIAL_SUMMARY}}
+
 TASKS
-1. Rewrite the core competencies to match the posting. Fold in the missing keywords above that are genuinely
+1. Evaluate the INITIAL PROFESSIONAL SUMMARY against the job posting, the candidate's confirmed skills, and any USER TAILORING DIRECTIVES. If the initial summary already fits well and aligns with all directives, you may keep or lightly polish it. If user directives or confirmed skills introduce new priorities or focus areas, rewrite it into a compelling 3 to 4 sentence professional elevator pitch tailored to this role. Return this as "summary".
+2. Rewrite the core competencies to match the posting. Fold in the missing keywords above that are genuinely
    supported by the candidate's experience, as well as the confirmed skills the candidate provided. Drop competencies the posting does not care about.
-2. Rewrite the technical skills block, keeping the resume's own grouping. Return one entry per group,
+3. Rewrite the technical skills block, keeping the resume's own grouping. Return one entry per group,
    formatted as "Group: item, item, item". Incorporate confirmed skills into the appropriate skill groups. Remove groups the posting has no use for.
-3. Rewrite the experience bullets for every role in the resume, keeping the same employers, titles, and order.
+4. Rewrite the experience bullets for every role in the resume, keeping the same employers, titles, and order.
    Lead with action verbs, keep them ATS friendly, and surface the skills this posting asks for.
-4. If USER TAILORING DIRECTIVES & INSTRUCTIONS are provided, follow their guidance on what project themes, technologies, or achievements to highlight or de-emphasize.
+5. If USER TAILORING DIRECTIVES & INSTRUCTIONS are provided, follow their guidance on what project themes, technologies, or achievements to highlight or de-emphasize.
 
 RULES
 Use only facts already in the resume plus the explicitly confirmed skills provided by the candidate. Do not invent fictional employers, dates, or fake metrics.
@@ -32,6 +36,7 @@ OUTPUT
 Return ONLY a JSON object in this exact shape. No markdown, no text outside the JSON.
 
 {
+  "summary": "Compelling 3 to 4 sentence professional summary aligned with the role and directives.",
   "coreCompetencies": ["..."],
   "technicalSkills": ["Languages: ...", "Frameworks: ..."],
   "experience": [

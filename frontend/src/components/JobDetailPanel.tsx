@@ -290,8 +290,11 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
                 <p className="text-gray-700">{job.analysis.reason}</p>
               </Section>
 
-              <Section title="Tailored summary" copy={job.analysis.tailoredSummary}>
-                <p className="text-gray-700">{job.analysis.tailoredSummary}</p>
+              <Section
+                title={job.tailored?.summary ? 'Tailored summary (Refined)' : 'Tailored summary'}
+                copy={job.tailored?.summary || job.analysis.tailoredSummary}
+              >
+                <p className="text-gray-700">{job.tailored?.summary || job.analysis.tailoredSummary}</p>
               </Section>
 
               <Section title="Matching strengths" copy={job.analysis.matchingStrengths.join(', ')}>
@@ -440,7 +443,7 @@ function resumeText(job: JobDetail): string {
 
   return [
     'SUMMARY',
-    job.analysis.tailoredSummary,
+    job.tailored?.summary || job.analysis.tailoredSummary,
     '',
     'CORE COMPETENCIES',
     job.tailored.coreCompetencies.join(' | '),

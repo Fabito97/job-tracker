@@ -34,6 +34,7 @@ export interface TailoredRole {
 }
 
 export interface TailoredResume {
+  summary?: string
   coreCompetencies: string[]
   technicalSkills: string[]
   experience: TailoredRole[]

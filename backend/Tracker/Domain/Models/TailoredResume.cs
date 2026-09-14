@@ -6,6 +6,8 @@ namespace Tracker.Domain.Models;
 /// </summary>
 public class TailoredResume
 {
+    public string Summary { get; set; } = string.Empty;
+
     public List<string> CoreCompetencies { get; set; } = [];
 
     /// <summary>One entry per line of the resume's technical skills block, such as "Languages: C#, Python".</summary>
