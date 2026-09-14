@@ -58,7 +58,8 @@ public sealed class ResumeService(
 
         EnsureDirectory();
 
-        var safeFileName = $"{Guid.NewGuid():N}_{Path.GetFileName(file.FileName)}";
+        var safeRole = System.Text.RegularExpressions.Regex.Replace(role.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "_").Trim('_');
+        var safeFileName = $"cv_{safeRole}_{Guid.NewGuid():N}{ext}";
         var fullPath = Path.Combine(_resumesDir, safeFileName);
 
         await using (var stream = File.Create(fullPath))
@@ -168,7 +169,8 @@ public sealed class ResumeService(
         var list = await db.Resumes.ToListAsync(ct);
         if (list.Count == 0)
         {
-            return prompts.GetResumes();
+            // If database is still empty (e.g. before initial seed finishes or in test), discover seed files
+            return prompts.DiscoverSeedResumes();
         }
 
         var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -184,7 +186,16 @@ public sealed class ResumeService(
         var list = await db.Resumes.ToListAsync(ct);
         if (list.Count == 0)
         {
-            return prompts.GetResume(role);
+            var seeds = prompts.DiscoverSeedResumes();
+            if (seeds.Count == 0)
+            {
+                throw new InvalidOperationException("No candidate resumes found in the database or seed directory.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(role) && seeds.TryGetValue(role, out var matchedSeed))
+                return matchedSeed;
+
+            return seeds.TryGetValue("Backend", out var defaultSeed) ? defaultSeed : seeds.Values.First();
         }
 
         if (!string.IsNullOrWhiteSpace(role))
@@ -205,40 +216,40 @@ public sealed class ResumeService(
 
         try
         {
-            if (prompts.TryGet("cv", out var backendCv) && !string.IsNullOrWhiteSpace(backendCv))
+            var seedResumes = prompts.DiscoverSeedResumes();
+            if (seedResumes.Count == 0)
             {
-                var path = Path.Combine(_resumesDir, "cv_backend.txt");
-                if (!File.Exists(path)) await File.WriteAllTextAsync(path, backendCv, ct);
-
-                db.Resumes.Add(new Resume
-                {
-                    Role = "Backend",
-                    FileName = "cv.txt",
-                    DiskPath = path,
-                    ExtractedText = backendCv,
-                    IsDefault = true,
-                    CreatedAt = DateTime.UtcNow
-                });
+                logger.LogInformation("No seed resumes found to import into database.");
+                return;
             }
 
-            if (prompts.TryGet("cv_f", out var fullstackCv) && !string.IsNullOrWhiteSpace(fullstackCv))
+            var isFirst = true;
+            foreach (var (role, text) in seedResumes)
             {
-                var path = Path.Combine(_resumesDir, "cv_fullstack.txt");
-                if (!File.Exists(path)) await File.WriteAllTextAsync(path, fullstackCv, ct);
+                var safeRole = System.Text.RegularExpressions.Regex.Replace(role.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "_").Trim('_');
+                var fileName = $"cv_{safeRole}.txt";
+                var diskPath = Path.Combine(_resumesDir, fileName);
+
+                if (!File.Exists(diskPath))
+                {
+                    await File.WriteAllTextAsync(diskPath, text, ct);
+                }
 
                 db.Resumes.Add(new Resume
                 {
-                    Role = "Full Stack",
-                    FileName = "cv_f.txt",
-                    DiskPath = path,
-                    ExtractedText = fullstackCv,
-                    IsDefault = false,
+                    Role = role,
+                    FileName = fileName,
+                    DiskPath = diskPath,
+                    ExtractedText = text,
+                    IsDefault = isFirst,
                     CreatedAt = DateTime.UtcNow
                 });
+
+                isFirst = false;
             }
 
             await db.SaveChangesAsync(ct);
-            logger.LogInformation("Seeded initial resume records from existing CV files.");
+            logger.LogInformation("Seeded {Count} initial resume records into database using predictable 'cv_<role>.txt' template pattern.", seedResumes.Count);
         }
         catch (Exception ex)
         {

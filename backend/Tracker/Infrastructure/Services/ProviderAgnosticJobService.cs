@@ -183,8 +183,6 @@ public sealed partial class ProviderAgnosticJobService(
         return null;
     }
 
-    private string ResumeFor(Job job) => prompts.GetResume(job.ResumeVersion);
-
     private static string Describe(string title, string company, string? location, string description) =>
         $"""
          Job title: {title}

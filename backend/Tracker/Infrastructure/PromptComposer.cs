@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Tracker.Infrastructure;
 
-public sealed class PromptComposer(PromptStore prompts)
+public sealed class PromptComposer
 {
     public string ComposeAnalysisPrompt(
         string title,
@@ -10,9 +10,13 @@ public sealed class PromptComposer(PromptStore prompts)
         string? location,
         string description,
         CandidateCriteria criteria,
-        IReadOnlyDictionary<string, string>? customResumes = null)
+        IReadOnlyDictionary<string, string> resumes)
     {
-        var resumes = customResumes is { Count: > 0 } ? customResumes : prompts.GetResumes();
+        if (resumes == null || resumes.Count == 0)
+        {
+            throw new InvalidOperationException("At least one candidate resume is required to analyze a job posting.");
+        }
+
         var hasMultipleResumes = resumes.Count > 1;
 
         var sb = new StringBuilder();
@@ -34,7 +38,7 @@ public sealed class PromptComposer(PromptStore prompts)
         // 2. Candidate Resumes
         if (!hasMultipleResumes)
         {
-            var singleResume = resumes.Values.FirstOrDefault() ?? prompts.Get("cv");
+            var singleResume = resumes.Values.First();
             sb.AppendLine("CANDIDATE RESUME:");
             sb.AppendLine(singleResume);
             sb.AppendLine();
