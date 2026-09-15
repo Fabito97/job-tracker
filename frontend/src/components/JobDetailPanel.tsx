@@ -75,7 +75,7 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
           <p className="p-6 text-gray-500">Loading job...</p>
         ) : (
           <>
-            <header className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white p-6">
+            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-gray-200 bg-white p-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">{job.jobTitle}</h2>
                 <p className="text-sm text-gray-600">
