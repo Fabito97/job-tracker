@@ -42,11 +42,13 @@ public sealed class SettingsService : ISettingsService
         var defaultProvider = config["AI:Provider"] ?? "gemini";
         var defaultModel = config["AI:Model"] ?? config[$"{defaultProvider}:Model"] ?? "gemini-2.5-flash";
 
-        var seedBlacklist = prompts.Get("blacklisted")
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(s => s.Length >= 3 && !s.StartsWith('#'))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var seedBlacklist = prompts.TryGet("blacklisted", out var blacklistedText) && !string.IsNullOrWhiteSpace(blacklistedText)
+            ? blacklistedText
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(s => s.Length >= 3 && !s.StartsWith('#'))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList()
+            : [];
 
         _state = new PersistedSettings
         {
