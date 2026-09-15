@@ -11,8 +11,9 @@ An intelligent, full-stack job application tracker designed to scrape postings, 
 
 ### 1. Multi-Provider AI Engine & Dynamic Settings
 - **Supported Providers**: Google Gemini (default `gemini-2.5-flash`), Groq (`llama-3.3-70b-versatile`), OpenAI (`gpt-4o-mini`), and Custom/Local endpoints (Ollama, vLLM).
-- **Masked API Keys**: API keys are securely saved locally, masked in UI responses (e.g. `AIza...4X9Q`), and can be switched dynamically per provider without server restarts.
-- **Dynamic Prompt Composer**: Injects the active candidate profile, headline, seniority, and dealbreakers into system prompts dynamically.
+- **Masked API Keys**: API keys are securely saved locally in `settings.json`, masked in UI responses (e.g. `AIza...4X9Q`), and can be switched dynamically per provider without server restarts.
+- **Dynamic Prompt Composer**: Programmatically constructs analysis prompts injecting candidate headline, seniority level, physical residence, target locations, work authorization, clearance, and custom dealbreakers.
+- **Hot-Reloading Prompt Templates**: `PromptStore` tracks file timestamps (`LastWriteTimeUtc`) with in-memory caching, so edits to prompt templates (`TailoredResumePrompt.txt`, `CoverLetterPrompt.txt`, etc.) take effect immediately on disk without needing server restarts.
 
 ### 2. Candidate Profile & Location Eligibility
 - **Location Categorization**:
@@ -33,12 +34,17 @@ Import jobs easily using either:
 - Configurable search parameters: board type, keywords, search location, max jobs, company tokens, and experience level.
 - Preview and cherry-pick scraped jobs directly into the tracking pipeline.
 
-### 5. Dedicated Resume Management
-- Dedicated **Resume Modal** accessible from the main navigation (separate from settings).
-- Manage multiple resume versions (e.g., General Software Engineering vs. Full-Stack / Specialized).
-- Upload `.txt` resumes, preview line counts, inspect extracted keywords, and switch the primary resume anytime.
+### 5. Dedicated Resume Management & Standardized Storage
+- **Dedicated Resume Modal**: Accessible directly from the main navigation (separate from settings) to upload and manage candidate resumes (`.pdf` and `.txt`).
+- **Predictable Seed Discovery**: On cold boot, discovers seed files following the `cv_<role>.txt` pattern (e.g. `cv_backend.txt` $\rightarrow$ "Backend", `cv_full_stack.txt` $\rightarrow$ "Full Stack") and automatically seeds them into SQLite.
+- **Standardized Storage on Upload**: When a user uploads a resume file with any arbitrary name (`My_Final_CV_2026.pdf`), it is normalized on disk to `cv_<role>_<guid>.<ext>` while preserving the original name in the database and UI.
+- **Dynamic Selection**: Switch primary/default resume versions anytime for targeted AI job matching.
 
-### 6. Tailoring Directives & Application Assistance
+### 6. Tailoring Directives & Adaptive Summary
+- **Adaptive Professional Summary**:
+  - `JobAnalysis.TailoredSummary` provides an immediate 3–4 sentence elevator pitch upon import.
+  - When tailoring/refining a resume, `TailoredResume.Summary` evaluates user notes and confirmed skills to preserve, lightly polish, or adjust the summary to align with specific directives.
+  - The UI and clipboard exports automatically prioritize the refined tailored summary with graceful fallback to the analysis summary.
 - **AI Tailored Resumes**: Rewrites and aligns resume bullets specifically to the target job description while strictly avoiding hallucinated credentials.
 - **Tailoring Directives**: Add bespoke instructions (e.g., "Highlight AWS Lambda and microservices; keep tone concise") saved per job to steer the AI generator.
 - **Confirmed Missing Skills**: Interactive badges allowing you to confirm skills flagged as missing to automatically integrate them into the tailored output.
@@ -51,16 +57,16 @@ Import jobs easily using either:
 
 ```
 ├── backend/
-│   ├── blacklisted.txt cv.txt cv_f.txt prompt.txt   # Shared seed files
+│   ├── blacklisted.txt cv.txt cv_f.txt              # Shared seed files
 │   └── Tracker/
-│       ├── Domain/Models/                           # Job, JobAnalysis, CandidateProfile, Resume
+│       ├── Domain/Models/                           # Job, JobAnalysis, CandidateProfile, Resume, TailoredResume
 │       ├── Features/                                # Endpoints & DTOs (Jobs, Settings, Resumes, Scraper)
-│       ├── Infrastructure/                          # EF Core DbContext, AI Services, PromptComposer
-│       └── Prompts/                                 # AnalysisPrompt.txt, CoverLetterPrompt.txt
+│       ├── Infrastructure/                          # EF Core DbContext, AI Services, PromptComposer, PromptStore
+│       └── Prompts/                                 # TailoredResumePrompt.txt, RefineTailoredResumePrompt.txt, CoverLetterPrompt.txt
 ├── frontend/
 │   └── src/
 │       ├── components/                              # JobTable, JobDetailPanel, SettingsModal, ResumeModal,
-│       │                                            # ImportModal, ScrapePanel, MetricsCards
+│       │                                            # ImportModal, ScrapePanel, MetricCards
 │       ├── hooks/                                   # TanStack Query mutation & query hooks
 │       └── types.ts                                 # Shared TypeScript interfaces & models
 └── README.md
@@ -86,7 +92,10 @@ dotnet user-secrets set "Gemini:ApiKey" "your-gemini-key" # or configure directl
 # Run the API
 dotnet run
 ```
-The backend starts at `http://localhost:5116` (or `https://localhost:7116`) and automatically sets up `tracker.db` SQLite database on first run.
+The backend starts at `http://localhost:5116` (or `https://localhost:7116`).
+- Automatically initializes `tracker.db` SQLite database on first run.
+- **Smart Startup**: Automatically checks `db.Database.GetPendingMigrations().Any()` before migrating, avoiding table lock contention on subsequent runs.
+- Automatically seeds default resumes from template files matching `cv_<role>.txt` if the database is fresh.
 
 > **Tip:** You do not need to configure API keys in configuration files manually. You can launch the app and configure your keys (Gemini, Groq, OpenAI) directly in the **Settings** modal in the UI.
 
@@ -134,14 +143,14 @@ When importing via JSON (either through file upload or API), the payload accepts
 | **GET** | `/api/settings` | Retrieve active AI provider, model, masked keys, candidate profile, and blacklist |
 | **PUT** | `/api/settings` | Update AI provider, model, API keys, candidate profile, and criteria |
 | **GET** | `/api/resumes` | List saved resumes and active primary resume |
-| **POST** | `/api/resumes` | Upload a new `.txt` resume version |
+| **POST** | `/api/resumes` | Upload a new `.pdf` or `.txt` resume version (standardized to `cv_<role>_<guid>.<ext>`) |
 | **PUT** | `/api/resumes/{id}/primary` | Set active primary resume for analysis |
+| **DELETE** | `/api/resumes/{id}` | Delete a resume record and its file on disk |
 | **POST** | `/api/jobs/import` | Analyze, score, and store job postings (batch or single) |
 | **GET** | `/api/jobs` | Paginated job list filtered by status, board, min score, date, and query |
 | **GET** | `/api/jobs/{id}` | Full job details including description and AI analysis |
 | **PATCH** | `/api/jobs/{id}/status` | Update tracking state (`Applied`, `Interviewing`, dates, notes) |
 | **PATCH** | `/api/jobs/{id}/directives`| Update per-job tailoring directives and confirmed skills |
-| **POST** | `/api/jobs/{id}/resume` | Generate or regenerate tailored resume |
+| **POST** | `/api/jobs/{id}/resume` | Generate or regenerate tailored resume with directive-aware summary |
 | **POST** | `/api/jobs/{id}/cover-letter` | Generate or regenerate cover letter |
 | **POST** | `/api/scrape` | Trigger client-side / board scraper |
-
