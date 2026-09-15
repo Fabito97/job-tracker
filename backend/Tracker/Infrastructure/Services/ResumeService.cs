@@ -30,18 +30,19 @@ public sealed class ResumeService(
     public async Task<IReadOnlyList<ResumeDto>> GetAllAsync(CancellationToken ct = default)
     {
         var list = await db.Resumes
+            .AsNoTracking()
             .OrderByDescending(r => r.IsDefault)
             .ThenBy(r => r.Role)
             .ToListAsync(ct);
 
-        return list.Select(r => new ResumeDto(
+        return list.ConvertAll(r => new ResumeDto(
             r.Id,
             r.Role,
             r.FileName,
             r.IsDefault,
             r.CreatedAt,
             Preview: r.ExtractedText.Length > 300 ? $"{r.ExtractedText[..300]}..." : r.ExtractedText
-        )).ToList();
+        ));
     }
 
     public async Task<ResumeDto> UploadAsync(string role, IFormFile file, bool isDefault, CancellationToken ct = default)

@@ -1,8 +1,5 @@
 using System.Text.Json.Serialization;
-using Google.GenAI; 
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.AI;
-using OpenAI;
 using Tracker.Features.Jobs;
 using Tracker.Features.Jobs.Services;
 using Tracker.Features.Resumes;
