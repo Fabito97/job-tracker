@@ -53,7 +53,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TrackerDbContext>();
-    db.Database.Migrate();
+    if (db.Database.GetPendingMigrations().Any())
+    {
+        db.Database.Migrate();
+    }
     var resumeService = scope.ServiceProvider.GetRequiredService<IResumeService>();
     await resumeService.SeedDefaultResumesIfEmptyAsync();
 }
