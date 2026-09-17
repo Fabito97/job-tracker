@@ -69,6 +69,7 @@ Import jobs easily using either:
 │       │                                            # ImportModal, ScrapePanel, MetricCards
 │       ├── hooks/                                   # TanStack Query mutation & query hooks
 │       └── types.ts                                 # Shared TypeScript interfaces & models
+├── LICENSE.md
 └── README.md
 ```
 
@@ -154,3 +155,11 @@ When importing via JSON (either through file upload or API), the payload accepts
 | **POST** | `/api/jobs/{id}/resume` | Generate or regenerate tailored resume with directive-aware summary |
 | **POST** | `/api/jobs/{id}/cover-letter` | Generate or regenerate cover letter |
 | **POST** | `/api/scrape` | Trigger client-side / board scraper |
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+
